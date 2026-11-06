@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HyperFlux — GPU inference studio</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 8.46 20 10.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></symbol>
+  <symbol id="i-tune" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></symbol>
+  <symbol id="i-delete" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M15 3l2.3 2.3-4.9 4.9 1.4 1.4 4.9-4.9L21 9V3zM3 9l2.3-2.3 4.9 4.9 1.4-1.4-4.9-4.9L9 3H3zM9 21l-2.3-2.3 4.9-4.9-1.4-1.4-4.9 4.9L3 15v6zM21 15l-2.3 2.3-4.9-4.9-1.4 1.4 4.9 4.9L15 21h6z"/></symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24"><path d="M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></symbol>
+  <symbol id="i-dice" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm0-7c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm7 7c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm0-7c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></symbol>
+</svg>
+
+<header class="appbar">
+  <div class="brand">
+    <svg class="ic brand-mark" aria-hidden="true"><use href="#i-bolt"/></svg>
+    <span class="brand-name">HyperFlux</span>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab active" id="tab-studio" data-view="studio" role="tab" aria-selected="true" aria-controls="view-studio">Studio</button>
+    <button class="tab" id="tab-bench" data-view="bench" role="tab" aria-selected="false" aria-controls="view-bench" tabindex="-1">Benchmarks</button>
+    <button class="tab" id="tab-math" data-view="math" role="tab" aria-selected="false" aria-controls="view-math" tabindex="-1">Method</button>
+    <button class="tab" id="tab-arch" data-view="arch" role="tab" aria-selected="false" aria-controls="view-arch" tabindex="-1">Architecture</button>
+  </nav>
+
+  <div class="sys-strip">
+    <span class="sys-item mono" id="gpuName">GPU —</span>
+    <span class="sys-badge mono" id="modeBadge">—</span>
+    <span class="conn"><span class="dot" id="connDot"></span><span id="connText">Connecting</span></span>
+  </div>
+</header>
+
+<main>
+  <!-- ==================== STUDIO ==================== -->
+  <section id="view-studio" class="view active" role="tabpanel" aria-labelledby="tab-studio">
+    <div class="studio-grid">
+
+      <aside class="rail">
+        <div class="rail-scroll">
+
+          <div class="field">
+            <div class="field-label">
+              <label for="promptInput">Prompt</label>
+              <kbd class="mono">Ctrl+Enter</kbd>
+            </div>
+            <textarea id="promptInput" placeholder="Describe the scene." maxlength="4000"></textarea>
+            <div class="field-actions">
+              <button class="btn-text" id="optimizePromptBtn" title="Compile physics, perspective and anatomy into the prompt">
+                <svg class="ic" aria-hidden="true"><use href="#i-tune"/></svg><span>Refine</span>
+              </button>
+              <button class="btn-text" id="quickSampleBtn">
+                <svg class="ic" aria-hidden="true"><use href="#i-shuffle"/></svg><span>Sample</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label"><span>Style</span></div>
+            <div class="chips" id="styleContainer" title="If your prompt already names its own medium, the conflicting style prefix is dropped automatically.">
+              <button class="chip active" data-style="matte_chiaroscuro">Matte chiaroscuro</button>
+              <button class="chip" data-style="cinematic_35mm">35mm film</button>
+              <button class="chip" data-style="anime_concept">Anime</button>
+              <button class="chip" data-style="raw_candid">Documentary</button>
+              <button class="chip" data-style="dark_baroque">Baroque</button>
+              <button class="chip" data-style="cyberpunk_noir">Neon noir</button>
+              <button class="chip" data-style="pure_raw">Raw prompt</button>
+            </div>
+          </div>
+
+          <hr class="rule">
+
+          <div class="field">
+            <div class="field-label">
+              <span>Aspect</span>
+              <span class="mono dim" id="ratioMeta">1280×720</span>
+            </div>
+            <div class="seg seg-7" id="ratioRow">
+              <button class="active" data-ratio="16:9">16:9</button>
+              <button data-ratio="1:1">1:1</button>
+              <button data-ratio="9:16">9:16</button>
+              <button data-ratio="4:3">4:3</button>
+              <button data-ratio="3:4">3:4</button>
+              <button data-ratio="2:3">2:3</button>
+              <button data-ratio="21:9">21:9</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label"><span>Resolution</span></div>
+            <div class="seg seg-5" id="qualityRow">
+              <button data-quality="420p">420p</button>
+              <button data-quality="720p">720p</button>
+              <button class="active" data-quality="1080p">1080p</button>
+              <button data-quality="2K">2K</button>
+              <button data-quality="4K">4K</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label"><label for="seedInput">Seed</label></div>
+            <div class="seed-row">
+              <input class="input mono" id="seedInput" type="number" value="-1" min="-1" max="2147483646" step="1" inputmode="numeric" autocomplete="off">
+              <button class="btn-icon" id="seedRandomBtn" title="Random seed" aria-label="Random seed">
+                <svg class="ic" aria-hidden="true"><use href="#i-dice"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label"><span>Variants</span></div>
+            <div class="seg seg-3" id="variantRow">
+              <button class="active" data-count="1">1×</button>
+              <button data-count="2">2×</button>
+              <button data-count="4">4×</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <span>Steps</span>
+              <span class="mono dim" id="stepsMeta">1080p · 4 steps</span>
+            </div>
+            <div class="seg seg-4" id="stepsRow">
+              <button class="active" data-steps="0">Fast</button>
+            </div>
+          </div>
+
+          <hr class="rule">
+
+          <div class="switches">
+            <button class="switch" id="crpfToggle" title="Experimental per-step latent editor; no measured gain yet">
+              <span class="track"><span class="thumb"></span></span>
+              <span class="switch-label">CRPF</span>
+            </button>
+            <button class="switch active" id="geoToggle" title="Perspective and lighting anchor">
+              <span class="track"><span class="thumb"></span></span>
+              <span class="switch-label">Perspective anchor</span>
+            </button>
+            <button class="switch active" id="detailToggle" title="Draw the large grid directly instead of upscaling a small one. Real detail, more time and VRAM.">
+              <span class="track"><span class="thumb"></span></span>
+              <span class="switch-label">Detail pass</span>
+            </button>
+          </div>
+
+        </div>
+
+        <button class="btn-filled" id="generateBtn">
+          <svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>
+          <span id="generateLabel">Generate</span>
+        </button>
+      </aside>
+
+      <section class="stage-col">
+        <div class="stage-head">
+          <div class="stage-title">
+            <h2>Output</h2>
+            <span class="mono dim" id="stageMeta">—</span>
+          </div>
+          <div class="stage-actions">
+            <button class="btn-text" id="copyPromptBtn">
+              <svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg><span>Copy prompt</span>
+            </button>
+            <a class="btn-text" id="downloadBtn" download="hyperflux.png">
+              <svg class="ic" aria-hidden="true"><use href="#i-download"/></svg><span>PNG</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="stage" id="stage">
+          <div class="run-line" id="runLine"></div>
+          <div class="stage-empty" id="stageEmpty">
+            <svg class="ic" aria-hidden="true"><use href="#i-image"/></svg>
+            <p>No output yet</p>
+          </div>
+          <img id="mainRender" alt="Generated image" role="button" aria-label="Open full size" tabindex="-1">
+          <div class="variant-grid" id="variantGrid"></div>
+        </div>
+
+        <section class="card timeline">
+          <div class="card-head">
+            <h3>Timeline</h3>
+            <span class="mono dim" id="timelineTotal">no measurement</span>
+          </div>
+          <div class="timeline-bar" id="timelineBar"></div>
+          <div class="timeline-legend" id="timelineLegend"></div>
+        </section>
+
+        <section class="card history">
+          <div class="card-head">
+            <h3>History</h3>
+            <button class="btn-icon" id="clearAllBtn" title="Clear history" aria-label="Clear history">
+              <svg class="ic" aria-hidden="true"><use href="#i-delete"/></svg>
+            </button>
+          </div>
+          <div class="history-strip" id="historyStrip"></div>
+        </section>
+      </section>
+
+      <aside class="rail rail-right">
+        <div class="rail-head">
+          <h3>Telemetry</h3>
+          <span class="live-tag" id="liveTag">idle</span>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg>E2E</div>
+            <div class="stat-value mono" id="mLatency">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Step avg</div>
+            <div class="stat-value mono" id="mStep">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label"><svg class="ic" aria-hidden="true"><use href="#i-chip"/></svg>Peak VRAM</div>
+            <div class="stat-value mono" id="mVram">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Output</div>
+            <div class="stat-value mono" id="mRes">—</div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <span>VRAM</span>
+            <span class="mono dim" id="vramHead">—</span>
+          </div>
+          <div class="meter">
+            <div class="meter-fill" id="vramFill"></div>
+            <div class="meter-mark" id="vramMark"></div>
+          </div>
+          <div class="block-foot mono" id="vramFoot">—</div>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <span>Quality contract</span>
+            <span class="mono dim" id="contractTier">awaiting frame</span>
+          </div>
+          <div class="verdict">
+            <span class="verdict-mark" id="contractMark">—</span>
+            <span class="verdict-text mono" id="contractText">no frame measured yet</span>
+          </div>
+          <div class="badges" id="contractBadges"></div>
+          <div class="block-foot mono" id="contractNote"></div>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <span>Phases</span>
+            <span class="mono dim" id="phaseNote">—</span>
+          </div>
+          <div class="rows">
+            <div class="row">
+              <span>Encode</span>
+              <div class="bar"><i id="phaseEncBar"></i></div>
+              <span class="mono" id="phaseEnc">—</span>
+            </div>
+            <div class="row">
+              <span>Denoise</span>
+              <div class="bar"><i id="phaseDenBar"></i></div>
+              <span class="mono" id="phaseDen">—</span>
+            </div>
+            <div class="row">
+              <span>Decode</span>
+              <div class="bar"><i id="phaseDecBar"></i></div>
+              <span class="mono" id="phaseDec">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <span>Module placement</span>
+            <span class="mono dim" id="cacheHead">cache 0</span>
+          </div>
+          <div class="modules" id="moduleList"></div>
+        </div>
+
+        <div class="block grow">
+          <div class="block-head"><span>Log</span></div>
+          <div class="log" id="eventLog">
+            <div class="event empty">No events.</div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- ==================== BENCHMARKS ==================== -->
+  <section id="view-bench" class="view" role="tabpanel" aria-labelledby="tab-bench" hidden>
+    <div class="bench-grid">
+
+      <section class="card bench-main">
+        <div class="card-head">
+          <h3>Measurement protocol</h3>
+          <span class="mono dim" id="benchStatus">ready</span>
+        </div>
+        <p class="note" id="benchModeNote"></p>
+
+        <div class="chips suite" id="suiteChips"></div>
+
+        <button class="btn-filled wide" id="benchStart">
+          <svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>
+          <span>Run benchmark</span>
+        </button>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th class="num">#</th>
+                <th>Condition</th>
+                <th>Resolution</th>
+                <th class="num">Encode</th>
+                <th class="num">Denoise</th>
+                <th class="num">Decode</th>
+                <th class="num">E2E</th>
+                <th class="num">VRAM</th>
+              </tr>
+            </thead>
+            <tbody id="benchBody"></tbody>
+          </table>
+        </div>
+
+        <div class="prompt-set">
+          <h4>Measured prompts</h4>
+          <div class="prompt-pair"><span class="mono">A</span><p>Karanlık antik kütüphanede mum ışığında el yazması inceleyen yaşlı bilgin, deri ciltli kitaplar, tozlu hava</p></div>
+          <div class="prompt-pair"><span class="mono">B</span><p>Sisli bir göl kıyısında ahşap iskelede duran balıkçı, paslı teneke kova, soğuk şafak ışığı</p></div>
+          <div class="prompt-pair"><span class="mono">C</span><p>Terk edilmiş tren istasyonunda bankta oturan genç kadın, sis, sarı istasyon lambası, ıslak beton</p></div>
+        </div>
+      </section>
+
+      <aside class="card bench-side">
+        <div class="card-head">
+          <h3>Summary</h3>
+          <span class="mono dim" id="benchSummaryMeta">—</span>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="stat-label">Mean E2E</div><div class="stat-value mono" id="sAvg">—</div></div>
+          <div class="stat"><div class="stat-label">Cache gain</div><div class="stat-value mono" id="sCache">—</div></div>
+          <div class="stat"><div class="stat-label">Peak VRAM</div><div class="stat-value mono" id="sVram">—</div></div>
+          <div class="stat"><div class="stat-label">Total</div><div class="stat-value mono" id="sTotal">—</div></div>
+        </div>
+
+        <div class="block">
+          <div class="block-head"><span>Latency split</span><span class="mono dim">ms</span></div>
+          <div class="chart" id="timeChart"><div class="chart-empty">awaiting measurement</div></div>
+        </div>
+
+        <div class="block">
+          <div class="block-head"><span>Peak VRAM</span><span class="mono dim" id="vramScale">—</span></div>
+          <div class="chart" id="vramChart"><div class="chart-empty">awaiting measurement</div></div>
+        </div>
+      </aside>
+
+      <section class="card transform">
+        <div class="card-head"><h3>Conversion pipeline</h3></div>
+        <div class="pipe" id="pipeSteps">
+          <div class="pipe-step"><span class="mono dim">01</span><span class="pipe-t">BF16 checkpoint</span><span class="mono dim" id="pipeBf16">—</span></div>
+          <svg class="ic arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+          <div class="pipe-step"><span class="mono dim">02</span><span class="pipe-t">FP8 weights</span><span class="mono dim" id="pipeFp8">—</span></div>
+          <svg class="ic arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+          <div class="pipe-step"><span class="mono dim">03</span><span class="pipe-t">Pinned stage</span><span class="mono dim" id="pipePinned">—</span></div>
+          <svg class="ic arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+          <div class="pipe-step"><span class="mono dim">04</span><span class="pipe-t">Placement</span><span class="mono dim" id="pipeDual">—</span></div>
+          <svg class="ic arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+          <div class="pipe-step"><span class="mono dim">05</span><span class="pipe-t">Denoise + VAE</span><span class="mono dim" id="pipeStepsV">—</span></div>
+        </div>
+
+        <div class="compare">
+          <div class="block-head"><span>Reference</span><span class="mono dim">this machine</span></div>
+          <div class="compare-row" id="compareBf16">BF16 full residency — computing</div>
+          <div class="compare-row" id="compareFast">FP8 fast — not measured this session</div>
+          <div class="compare-row" id="compareClassic">Classic flow — no record</div>
+        </div>
+      </section>
+
+      <section class="card promise">
+        <div class="card-head">
+          <h3>Ceiling by tier</h3>
+          <span class="mono dim" id="promiseHead">—</span>
+        </div>
+        <div class="ceil-legend mono dim"><span>bar: measured median peak</span><span>tick: worst run</span><span>line: product ceiling</span></div>
+        <div class="ceil-list" id="promiseChart"><div class="chart-empty">awaiting measurement</div></div>
+        <p class="note" id="promiseNote"></p>
+      </section>
+
+    </div>
+  </section>
+
+  <!-- ==================== METHOD ==================== -->
+  <section id="view-math" class="view" role="tabpanel" aria-labelledby="tab-math" hidden>
+    <div class="math-layout">
+      <div class="math-main">
+        <article class="doc">
+          <header class="doc-head">
+            <h1>Optimisation as a constrained decision problem</h1>
+            <p class="lede">Every run is a plan; every plan is a resource and quality vector. This layer builds a Pareto frontier from measured plans and solves for the best one under a VRAM budget, a time limit and a quality floor. The target is not a new model — it is a model-independent decision core.</p>
+          </header>
+
+          <section class="doc-section">
+            <h2><span class="mono dim">01</span> Definition</h2>
+            <div class="formula"><pre><span>S</span> = (q, k, c, o)             resolution, steps, cache state, decode offload
+<span>R(S)</span> = (M(S), T(S))          peak VRAM (GB), end-to-end time (s)
+<span>Q(S)</span> = (P_native, A_clip)     native megapixels, CLIP prompt alignment
+<span>F</span>(B, T_max, P_min) = { S | M(S) ≤ B,  T(S) ≤ T_max,  P_native(S) ≥ P_min }
+
+<span>S*</span> = argmax<sub>S∈F</sub> P_native(S)     (quality)
+     argmin<sub>S∈F</sub> T(S)            (speed)
+     argmin<sub>S∈F</sub> M(S)            (memory)
+
+<span>λ_B</span> = ΔQ*/ΔB,  <span>λ_T</span> = ΔQ*/ΔT   shadow price: what loosening a constraint buys</pre></div>
+            <div class="invariants">
+              <div class="invariant"><span class="mono dim">I1</span> Dominance: if a plan is faster, lighter and better at once, the old plan is dropped.</div>
+              <div class="invariant"><span class="mono dim">I2</span> Measurement first: plans come from real telemetry; prediction is only used for unmeasured configurations.</div>
+              <div class="invariant"><span class="mono dim">I3</span> Shadow price: zero means loosening the constraint buys nothing, not that it is inactive.</div>
+              <div class="invariant"><span class="mono dim">I4</span> Generality: the same schema applies to text and audio models; only the quality metric changes.</div>
+            </div>
+            <p class="note">Quality here is two measurable components: native draw resolution and CLIP alignment. Aesthetics, anatomy and hand quality do not fit CLIP, so a human-evaluation layer stays on the roadmap.</p>
+          </section>
+
+          <section class="doc-section">
+            <h2><span class="mono dim">02</span> Pareto frontier</h2>
+            <div id="mathPareto" class="pareto"><div class="chart-empty">loading measurements</div></div>
+            <p class="note" id="mathParetoNote">The frontier is computed from measured plans; the curve is never invented. Plans that are slower and heavier at the same time are dominated.</p>
+          </section>
+
+          <section class="doc-section">
+            <h2><span class="mono dim">03</span> Measured plans</h2>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>#</th><th>Native draw</th><th class="num">Steps</th><th>State</th><th class="num">Time</th><th class="num">VRAM</th><th class="num">CLIP</th><th>Source</th></tr></thead>
+                <tbody id="mathPlansBody"></tbody>
+              </table>
+            </div>
+            <p class="note">Time and VRAM medians come from repeats of the same configuration. CLIP measures prompt alignment only; 0.18–0.22 is normal in this dataset and is not an absolute quality score.</p>
+          </section>
+
+          <section class="doc-section">
+            <h2><span class="mono dim">04</span> Model-agnostic streaming</h2>
+            <p>The same plan schema ignores model architecture and looks only at the <strong>largest indivisible block</strong>. A block group moves to the GPU and returns to CPU when its work is done. If one block fits the budget, total model weight may exceed it. Qwen-Image 2.1 reached a 1.36 GB phase peak from a 31.7 GB checkpoint.</p>
+            <div class="formula"><pre><span>M_phase</span> = max(M_enc, M_den, M_dec)      phase peak model, VAE excluded
+<span>M_den</span> = g · w_block + A(S)            denoise: group + activation
+<span>M_enc</span> = w_emb + w_layer + A(T)        encode: embedding + single layer
+<span>lm_head</span> ∉ M_enc : diffusion reads hidden state only
+
+<span>w_max</span> + A + V ≤ B        streaming feasibility (block, activation, VAE workspace)
+<span>T_den</span> ≈ step · (k · S + W / BW)   PCIe + compute floor
+g* = max{ g : g · w_block + A + V ≤ B }   group length plan</pre></div>
+            <div class="measures">
+              <div class="measure"><span>Qwen 2.1 · 2:3 832×1248 / 40 steps</span><span class="mono">1.37 GB · 181.0 s</span></div>
+              <div class="measure"><span>Qwen 2.1 · 1536×864 / 28 steps</span><span class="mono">1.36 GB · 158.9 s</span></div>
+              <div class="measure"><span>NF4 encode · lm_head skipped</span><span class="mono">1.36 GB · 11.4 s</span></div>
+              <div class="measure"><span>Skipping lm_head</span><span class="mono">2.33 → 1.36 GB</span></div>
+              <div class="measure"><span>Stream / group</span><span class="mono">11.02 GB · 2 blocks</span></div>
+              <div class="measure"><span>FLUX streaming · 14.7 GB → 8 GB</span><span class="mono">7.95 GB · 86.4 s</span></div>
+            </div>
+            <p class="note">Qwen is the quality engine: <span class="mono">HYPERFLUX_BACKEND=qwen</span>. VAE enters VRAM only during decode and lm_head never loads. Decode is tiled; with tiling off, 832×1248 reaches 7.17 GB. The FLUX fast path at 720p/4 steps is 4.18 GB warm / 4.92 GB cold, 3.3–5.0 s. Speed is set by PCIe, block count and steps; resident 4-bit mode is measured separately with <span class="mono">HYPERFLUX_QWEN_RESIDENT=1</span>.</p>
+          </section>
+
+          <section class="doc-section">
+            <h2><span class="mono dim">05</span> 5 GB resident mode</h2>
+            <p>The transformer stays fully in VRAM as 4-bit NF4 — no block streaming, no weight offload. Text encoder, transformer and VAE are never resident together; each phase enters the budget with its own working set. The 30 GB checkpoint is not loaded into RAM.</p>
+            <div class="formula"><pre><span>M(B,S)</span> = max( W_tf(b) + A(S),  W_tf(b) + W_te,  W_vae + A_dec ) ≤ B
+<span>W_tf(4)</span> = 3.43 GB      <span>A(S)</span> = 0.154 + 0.418·MP
+<span>W_te</span> = 1.29 GB         <span>W_vae</span> = 1.06 GB
+
+B = 5 GB ⇒ 1024×576: 3.83 GB · 1280×704: 3.96 GB · 1080p 2:3: 4.02 GB</pre></div>
+            <div class="measures">
+              <div class="measure"><span>720p · 16 steps · warm prompt</span><span class="mono">29.3 s · 3.91 GB</span></div>
+              <div class="measure"><span>720p · 20 steps · end to end</span><span class="mono">38.8 s · 3.91 GB</span></div>
+              <div class="measure"><span>1080p 2:3 · 832×1248 native · 40 steps</span><span class="mono">132.3 s · 4.06 GB</span></div>
+              <div class="measure"><span>1080p 16:9 · 1760×992 native · 40 steps</span><span class="mono">266 s · 2.41 GB streamed</span></div>
+              <div class="measure"><span>2K 16:9 · 2048×1152 native · 32 steps</span><span class="mono">260 s · 2.42 GB streamed</span></div>
+              <div class="measure"><span>1280×704 · 20 steps · denoise</span><span class="mono">59.3 s · 3.96 GB</span></div>
+              <div class="measure"><span>FP8 stream · 1280×704 · denoise</span><span class="mono">79.9 s · 1.69 GB</span></div>
+              <div class="measure"><span>Same-card gain</span><span class="mono">1.35× · 4-bit resident</span></div>
+              <div class="measure"><span>420p · 8 steps</span><span class="mono">stream 32.0 s → resident 14.7 s</span></div>
+              <div class="measure"><span>Transformer BF16 → NF4</span><span class="mono">13.25 → 3.43 GB</span></div>
+            </div>
+            <p class="note">720p end to end uses 78% of a 5 GB budget; 1080p 2:3/40 uses 81% (plan 4.02, measured 4.06). On an 8 GB card the 192 px decode seam cannot be measured (z=0.13). Five images showed no artefacts; CLIP moved 0.338 → 0.304 in one sample. Without LPIPS and a blind A/B, "identical quality" is not claimed. 3-bit and 2-bit are plans only — no kernel yet.</p>
+          </section>
+
+          <section class="doc-section limits">
+            <h2><span class="mono dim">06</span> Limits today</h2>
+            <ul class="plain-list">
+              <li><strong><span id="mathDataN">—</span> plans in the dataset.</strong> Coefficients come from the FLUX.2 Klein stack on this 8 GB card; other models need re-measurement.</li>
+              <li><strong>Qwen runs are not mixed into the solver.</strong> Qwen-Image 2.1 reports with its own phase model; 1536×864/40 looks stronger but has no CLIP or human A/B score yet.</li>
+              <li><strong>Quality is not one axis.</strong> CLIP measures alignment, not hand or anatomy error. Human A/B and LPIPS are phase 2.</li>
+              <li><strong>2K/4K are not in the planner.</strong> They are Lanczos upscales of the same native draw and add no compute.</li>
+              <li><strong>Single worker.</strong> No queue or batch planning for concurrent requests yet.</li>
+            </ul>
+          </section>
+        </article>
+      </div>
+
+      <aside class="math-side">
+        <section class="card solver">
+          <div class="card-head"><h3>Constraint solver</h3></div>
+          <div class="control">
+            <label for="mathBudget">VRAM budget <output class="mono" id="mathBudgetOut">5.0 GB</output></label>
+            <input type="range" id="mathBudget" min="1" max="7" step="0.1" value="5">
+          </div>
+          <div class="control">
+            <label for="mathTime">Max time <output class="mono" id="mathTimeOut">8.0 s</output></label>
+            <input type="range" id="mathTime" min="1" max="12" step="0.5" value="8">
+          </div>
+          <div class="control">
+            <label for="mathFloor">Quality floor <output class="mono" id="mathFloorOut">0.45 MP</output></label>
+            <input type="range" id="mathFloor" min="0.2" max="1.1" step="0.05" value="0.45">
+          </div>
+          <div class="control">
+            <div class="field-label"><span>Steps</span></div>
+            <div class="seg seg-3" id="mathStepsRow">
+              <button data-steps="3">3</button>
+              <button class="active" data-steps="4">4</button>
+              <button data-steps="6">6</button>
+            </div>
+          </div>
+          <div class="control">
+            <div class="field-label"><span>Cache</span></div>
+            <div class="seg seg-2" id="mathWarmRow">
+              <button class="active" data-warm="1">Warm</button>
+              <button data-warm="0">Cold</button>
+            </div>
+          </div>
+          <div class="control">
+            <div class="field-label"><span>Objective</span></div>
+            <div class="seg seg-3" id="mathObjRow">
+              <button class="active" data-objective="quality">Quality</button>
+              <button data-objective="time">Speed</button>
+              <button data-objective="vram">VRAM</button>
+            </div>
+          </div>
+          <button class="btn-filled wide" id="mathSolveBtn"><span>Solve plan</span></button>
+          <div class="math-status mono" id="mathSolveStatus">ready</div>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><h3>Chosen plan</h3></div>
+          <div id="mathChosen"><p class="note">Not solved yet.</p></div>
+          <div id="mathShadow" class="shadow"></div>
+          <div id="mathAlts" class="alts"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><h3>Model validation</h3></div>
+          <div class="measures one">
+            <div class="measure"><span>Plans</span><span class="mono" id="mathN">—</span></div>
+            <div class="measure"><span>CLIP</span><span class="mono" id="mathClipN">—</span></div>
+            <div class="measure"><span>Latency R²</span><span class="mono" id="mathFitLat">—</span></div>
+            <div class="measure"><span>VRAM</span><span class="mono" id="mathFitVram">—</span></div>
+          </div>
+          <p class="note" id="mathFitNote">R² and MAE use leave-one-out. Training error is never shown.</p>
+        </section>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ==================== ARCHITECTURE ==================== -->
+  <section id="view-arch" class="view" role="tabpanel" aria-labelledby="tab-arch" hidden>
+    <div class="doc-layout">
+
+      <nav class="toc">
+        <h3>Contents</h3>
+        <a href="#a-system">System</a>
+        <a href="#a-cost">Cost model</a>
+        <a href="#a-residency">Residency rule</a>
+        <a href="#a-measure">Measurement</a>
+        <a href="#a-limits">Limits</a>
+        <a href="#a-roadmap">Roadmap</a>
+      </nav>
+
+      <article class="doc">
+        <header class="doc-head">
+          <h1>Where residency, quantisation and cache separate</h1>
+          <p class="lede">HyperFlux is not a new image model. It is a conversion and scheduling layer that runs an existing model inside a given VRAM budget. Every value on this page is read from the live engine.</p>
+        </header>
+
+        <section id="a-system" class="doc-section">
+          <h2><span class="mono dim">01</span> System</h2>
+          <p>One pipeline runs a diffusion transformer, a text encoder and a VAE on a single 8 GB card. Fast mode uses FLUX.2 Klein (FP8); quality mode uses Qwen-Image 2.1 (FP8 transformer + NF4 text encoder), streamed by phase. Conversion is three separate decisions:</p>
+
+          <div class="flow">
+            <div class="flow-box"><span>BF16 checkpoint</span><span class="mono dim" id="archBf16">—</span></div>
+            <svg class="ic arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+            <div class="flow-box"><span>FP8 / NF4</span><span class="mono dim" id="archFp8">—</span></div>
+            <svg class="ic arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+            <div class="flow-box"><span>Pinned CPU stage</span><span class="mono dim" id="archPinned">—</span></div>
+            <svg class="ic arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+            <div class="flow-box"><span>Budgeted residency</span><span class="mono dim" id="archDual">—</span></div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Module</th><th class="num">Layers</th><th class="num">FP8 bytes</th><th>State</th></tr></thead>
+              <tbody id="archModules"></tbody>
+            </table>
+          </div>
+
+          <p class="note">Weights drop to FP8 while activations stay in BF16. The pinned stage swaps through locked RAM instead of pageable memory; the measured swap cost is below.</p>
+        </section>
+
+        <section id="a-cost" class="doc-section">
+          <h2><span class="mono dim">02</span> Cost model</h2>
+          <p>Generation time is encode + denoise + decode. Swapping happens only at the encode boundary; on a cache hit the encode term falls to zero.</p>
+          <p class="note" id="costModeNote"></p>
+
+          <div class="formula">
+<pre>B   = <span id="fBudget">—</span> GB      budget left with the transformer resident
+Sₜ  = <span id="fTf">—</span> GB      transformer GPU copy
+S_e = <span id="fTe">—</span> GB      text encoder GPU copy
+R   = 0.90 GB    safety margin
+
+dual ⇔ B ≥ S_e + R
+
+E2E = (1 − h)·(E_enc + s·E_swap) + Σ E_step + E_dec
+h = cache hit (0 or 1) · s = swaps per prompt (0 or 2)</pre>
+          </div>
+
+          <div class="invariants">
+            <div class="invariant"><span class="mono dim">I1</span> Zero swaps inside the denoise loop.</div>
+            <div class="invariant"><span class="mono dim">I2</span> Same prompt + new seed ⇒ h = 1, encode cost zero.</div>
+            <div class="invariant"><span class="mono dim">I3</span> Measured peak VRAM never exceeds budget + margin.</div>
+            <div class="invariant"><span class="mono dim">I4</span> Seed is deterministic; same input gives the same latent.</div>
+          </div>
+
+          <div class="tradeoff">
+            <div class="block-head"><span>Measured swap · 720p</span><span class="mono dim">same GPU · same model</span></div>
+            <div class="tradeoff-row"><span>classic · BF16 + CPU flow</span><span class="mono" id="toClassic">—</span></div>
+            <div class="tradeoff-row"><span>fast · FP8 resident + swap</span><span class="mono" id="toFast">—</span></div>
+            <p class="note" id="toNote">Awaiting measurement.</p>
+          </div>
+
+          <p class="note">On today's card: <span class="mono" id="dualNote">—</span>. Residency is solved as a two-module budget problem; the module left out is the one whose removal frees the most room.</p>
+        </section>
+
+        <section id="a-residency" class="doc-section">
+          <h2><span class="mono dim">03</span> Residency rule</h2>
+          <p>The planner reads module sizes and the budget, then groups all swaps into a single boundary before denoise starts. Step times stay flat and the VRAM peak stays predictable.</p>
+
+          <div class="formula">
+<pre>if B ≥ S_e + R:
+    transformer ← GPU ; text_encoder ← GPU      # dual resident
+else:
+    text_encoder ← GPU ; transformer ← pinned RAM
+    encode(prompt)
+    transformer ← GPU ; text_encoder ← pinned RAM
+
+key = sha1(final_prompt)
+if key in cache: h = 1 else: h = 0</pre>
+          </div>
+
+          <p>The cache key is the compiled prompt, so changing style or physics anchor changes it. The seed is not part of the key: the same scene with a new seed pays no encode cost.</p>
+
+          <p>The general case is a shortest-path problem over the module sets held at each phase boundary, where the transition cost is swap time:</p>
+          <div class="formula">
+<pre>C_t(S) = min_{S'} [ C_{t-1}(S') + swap(S', S) ] + compute_t(S)
+subject to:  bytes(S) ≤ B
+C_0(∅) = 0 ,  objective: min_S C_T(S)</pre>
+          </div>
+          <p>On a two-module linear pipeline this DP reduces to the single rule above. Multi-model pipelines (text prefill/decode + image denoise) use the full form; today's implementation is the two-module special case.</p>
+        </section>
+
+        <section id="a-measure" class="doc-section">
+          <h2><span class="mono dim">04</span> Measurement</h2>
+          <p>Each condition runs on the same GPU, in sequence, with the cache cleared. Recorded: encode, per-step time, decode, total E2E, peak VRAM and cache state.</p>
+          <div class="measures">
+            <div class="measure"><span>GPU</span><span class="mono" id="archGpu">—</span></div>
+            <div class="measure"><span>Budget</span><span class="mono" id="archBudget">—</span></div>
+            <div class="measure"><span>FP8 weights</span><span class="mono" id="archWeights">—</span></div>
+            <div class="measure"><span>Cache</span><span class="mono" id="archCache">—</span></div>
+          </div>
+          <p class="note">Results are produced live in Benchmarks and written to the run log. No chart is pre-filled.</p>
+        </section>
+
+        <section id="a-limits" class="doc-section limits">
+          <h2><span class="mono dim">05</span> Limits today</h2>
+          <p class="note" id="archLimitNote"></p>
+          <ul class="plain-list">
+            <li><strong>The drawing grid comes from the ceiling, not the tier name.</strong> Peak scales with the grid (fitted here: 602 MB per megapixel over measured 0.46 / 0.92 / 2.06 MP draws), so 1080p is a 1680×944 draw finished by bicubic to 1920×1080 — warm 4.84 GB, cold 4.92 GB, inside the 5.0 GB promise. Uncapped it drew 1920×1072 and measured 5.12 GB; measured structural detail was the same either way (3754 vs 3732).</li>
+            <li><strong>On an 8 GB card 2K and 4K are resamples, not more compute.</strong> The same fitted cap gives all three tiers the same 1680×944 grid; the panel prints native → target so the difference is visible instead of advertised.</li>
+            <li><strong>One second only at 420p warm.</strong> 640×368 skips decode offload: 3 steps + cache measured ≈1.1 s. Not true at 1080p.</li>
+            <li><strong>Hand quality is the model's own limit.</strong> The anatomy anchor now attaches only to prompts that contain people. The larger base grid is more consistent, but 6 steps do not fix hands.</li>
+            <li><strong>1.1 GB only in classic mode.</strong> BF16 + CPU flow produces 720p in 10.4 s; the speed/memory trade is real.</li>
+            <li><strong>More steps are not more quality.</strong> At the same seed, 6 steps drew worse hands than 4; the model is distilled for 4. CRPF is experimental and off by default.</li>
+            <li><strong>BF16 full residency does not fit 8 GB.</strong> Weights alone are <span class="mono" id="limitBf16">—</span>, so conversion is mandatory, not optional.</li>
+          </ul>
+        </section>
+
+        <section id="a-roadmap" class="doc-section">
+          <h2><span class="mono dim">06</span> Roadmap</h2>
+          <div class="roadmap">
+            <div class="road-item"><span class="mono dim">1</span><div><strong>Model adapter interface and DP planner</strong><p>Same residency contract, multi-module placement DP, benchmark CI.</p></div></div>
+            <div class="road-item"><span class="mono dim">2</span><div><strong>Queue and multiple workers</strong><p>Concurrent generation on the same hardware; queue latency and throughput measured.</p></div></div>
+            <div class="road-item"><span class="mono dim">3</span><div><strong>Quality preservation metric</strong><p>Prove with LPIPS/CLIP and a blind panel that CRPF actually preserves quality.</p></div></div>
+            <div class="road-item"><span class="mono dim">4</span><div><strong>Larger memory class</strong><p>Both models resident on 16 GB and up; measure the one-second target.</p></div></div>
+          </div>
+        </section>
+
+        <footer class="doc-foot mono">
+          <span>HyperFlux</span>
+          <span id="docStamp">—</span>
+        </footer>
+      </article>
+    </div>
+  </section>
+</main>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Full size preview" aria-hidden="true">
+  <button class="btn-icon lightbox-close" id="lightboxClose" aria-label="Close">
+    <svg class="ic" aria-hidden="true"><use href="#i-close"/></svg>
+  </button>
+  <img id="lightboxImg" alt="Full size preview">
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+ "steps": 20,
+ "width": 1024,
+ "height": 576,
+ "seed": 42,
+ "skip": [],
+ "compress": true,
+ "encode_s": 0.0,
+ "encode_peak_gb": 0.0,
+ "load_bf16_s": 0.1,
+ "quant_s": 31.6,
+ "weights_gb": 3.42,
+ "denoise_s": 35.14,
+ "denoise_peak_gb": 3.82,
+ "decode_s": 2.31,
+ "decode_peak_gb": 1.06,
+ "image": "C:\\Users\\theay\\OneDrive\\Desktop\\Grosel\\_experiments\\qwen_resident_nf4_1024x576_20.png"
+}

@@ -1,0 +1,22 @@
+{
+ "steps": 20,
+ "width": 1280,
+ "height": 704,
+ "seed": 42,
+ "encode_s": 7.23,
+ "encode_peak_gb": 1.29,
+ "load_bf16_s": 0.1,
+ "quant_s": 30.7,
+ "weights_gb": 3.43,
+ "denoise_s": 59.27,
+ "denoise_peak_gb": 3.96,
+ "decode_s": 3.16,
+ "decode_peak_gb": 1.06,
+ "image": "C:\\Users\\theay\\OneDrive\\Desktop\\Grosel\\_experiments\\qwen_resident_nf4_20.png",
+ "ref": "C:\\Users\\theay\\OneDrive\\Desktop\\Grosel\\_experiments\\Yeni klasör\\qwen_base_20.png",
+ "psnr": 16.09,
+ "ssim": 0.6662,
+ "mae": 25.43,
+ "clip_ref": 0.3385,
+ "clip_ours": 0.3045
+}

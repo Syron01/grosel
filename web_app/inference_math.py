@@ -7,8 +7,6 @@ Kalite ekseni CLIP prompt uyumudur; estetik veya anatomi kalitesi iddiası taş�
 
 from __future__ import annotations
 
-import json
-import math
 import os
 import statistics
 import threading
@@ -20,7 +18,7 @@ from PIL import Image
 
 from web_app.config import GALLERY_DIR, QUALITY_FILE, RUNS_FILE
 from web_app.resolutions import get_dimensions
-from web_app.storage import write_json_atomic
+from web_app.storage import read_json, write_json_atomic
 
 RATIO = "16:9"
 QUALITIES = ("420p", "720p", "1080p")
@@ -77,14 +75,6 @@ class LinearFit:
             "unit": unit,
             "n": self.n,
         }
-
-
-def _read_json(path, default):
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return default
 
 
 def _write_json(path, data):
@@ -145,8 +135,8 @@ def _load_clip():
     global _CLIP
     with _CLIP_LOCK:
         if _CLIP is None:
-            import torch
             import clip
+            import torch
 
             torch.set_num_threads(max(1, min(4, os.cpu_count() or 2)))
             model, preprocess = clip.load("ViT-B/32", device="cpu")
@@ -157,7 +147,7 @@ def _load_clip():
 
 def _ensure_clip_scores(items):
     """Eksik görseller için CLIP prompt uyumunu CPU'da hesaplar."""
-    cache = _read_json(QUALITY_FILE, {})
+    cache = read_json(QUALITY_FILE, {})
     if not isinstance(cache, dict):
         cache = {}
     missing = [(f, p) for f, p in items if f and p and f not in cache]
@@ -165,7 +155,7 @@ def _ensure_clip_scores(items):
         return cache
 
     with _QUALITY_LOCK:
-        cache = _read_json(QUALITY_FILE, {})
+        cache = read_json(QUALITY_FILE, {})
         missing = [(f, p) for f, p in items if f and p and f not in cache]
         if not missing:
             return cache
@@ -230,7 +220,7 @@ def _plans_from_runs(runs, quality_cache):
         ):
             continue
         try:
-            base_w, base_h, target_w, target_h, _, _ = get_dimensions(quality, RATIO)
+            base_w, base_h, *_ = get_dimensions(quality, RATIO)
             total_time = float(run.get("total_time") or 0)
             peak_gb = float(run.get("peak_vram_mb") or 0) / 1024
             res_w, res_h = (int(v) for v in str(run.get("resolution", "0x0")).split("x"))
@@ -244,8 +234,14 @@ def _plans_from_runs(runs, quality_cache):
         if "prompt_cached" in run:
             cold = not bool(run.get("prompt_cached"))
         decode_peak = float(run.get("decode_peak_mb") or 0)
-        target_mp = target_w * target_h / 1e6
-        native_mp = base_w * base_h / 1e6
+        # Detay geçişi ızgarayı büyütüyor; matris tabanı yerine fiilen çizilen
+        # ızgara kullanılmazsa "native draw" sütunu ölçümle çelişir.
+        try:
+            native_w, native_h = (int(v) for v in str(run.get("native_resolution") or "").split("x"))
+        except (TypeError, ValueError):
+            native_w = native_h = 0
+        native_mp = (native_w * native_h if native_w and native_h else base_w * base_h) / 1e6
+        target_mp = res_w * res_h / 1e6
         # 1080p 1024×576 tabanından üretilmiş eski çalıştırmalar mevcut
         # matrisle yeniden üretilemez; planlayıcıya girmesinler.
         if quality == "1080p" and res_w * res_h / 1e6 < 0.8:
@@ -258,7 +254,7 @@ def _plans_from_runs(runs, quality_cache):
             prompt=(run.get("prompt") or "").strip(),
             quality=quality,
             steps=steps,
-            resolution=f"{target_w}x{target_h}",
+            resolution=f"{res_w}x{res_h}",
             native_mp=native_mp,
             target_mp=target_mp,
             cold=cold,
@@ -559,7 +555,7 @@ def _public_fit(fit):
 
 
 def _build():
-    runs = _read_json(RUNS_FILE, [])
+    runs = read_json(RUNS_FILE, [])
     items = [(r.get("filename"), (r.get("prompt") or "").strip()) for r in runs
              if r.get("filename") and (r.get("prompt") or "").strip()]
     quality_cache = _ensure_clip_scores(items)
@@ -611,7 +607,7 @@ def solve(budget_gb=5.0, max_time_s=8.0, min_native_mp=0.9, steps=4, warm=True, 
                    and p.steps == steps and p.cold == (not warm)]
         if matches:
             candidates.extend(matches)
-        else:
+        elif fit["latency"].n:
             candidates.append(_predict_plan(fit, quality, steps, warm))
     for plan in aggregated:
         if plan.mode == "classic" and plan.steps == steps:

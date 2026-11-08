@@ -1,6 +1,8 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.ruff_cache/
+.claude/
 .venv/
 .env
 build/
@@ -8,6 +10,7 @@ dist/
 *.egg-info/
 *.log
 *.pt
+graphify-out/
 Çizimler/
 web_app/data/runs.json
 web_app/data/quality.json

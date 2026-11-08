@@ -1,26 +1,24 @@
-"""
-HyperFlux Engine v3.0 - CRPF-Flow (Contrastive Resonant Phase Field Flow)
-- Dynamic Frequency De-Aliasing (DFD): Kills duplicate centroids (e.g. double fireplaces) in Steps 0-1.
-- Organic Phase Regularizer (OPR): Injects spatial Laplacian micro-jitter into detail channels (Steps 2-3) to destroy plastic AI slop.
-- Semantic Geometric Compiler: Intelligently binds light, perspective, and gravity to eliminate floating objects & warped horizons.
-- Locked 4-Step Distillation & RoPE Manifold Anchor (1280x720 native render / 1920x1080 Lanczos output).
-- Instant 4K/2K Multi-Scale Edge-Preserving Super-Resolution (0.3s, 0 MB GPU overhead).
+"""Grosel classic engine — BF16 weights with sequential CPU offload.
+
+This module is also the shared library for all three backends: style presets,
+the geometric prompt compiler, the CRPF latent regularizer and sidecar output.
 """
 
+import base64
+import io
 import os
 import re
 import time
-import io
-import base64
-import torch
-import numpy as np
-from PIL import Image, ImageFilter
-from diffusers import Flux2KleinPipeline
 
-from web_app.config import FLUX_MODEL, GALLERY_DIR, META_DIR
+import numpy as np
+import torch
+from diffusers import Flux2KleinPipeline
+from PIL import Image, ImageFilter
+
 from web_app import quality_math
-from web_app.storage import write_json_atomic
+from web_app.config import FLUX_MODEL, GALLERY_DIR, META_DIR
 from web_app.resolutions import get_dimensions
+from web_app.storage import write_json_atomic
 
 GB = 1024 ** 3
 
@@ -37,7 +35,6 @@ def save_sidecar(filename: str, data: dict) -> None:
     except OSError as e:
         print(f"[meta] Uyarı: {e}")
 
-# Mandatory Anatomical Safeguard
 ANATOMY_ANCHOR = (
     "anatomically flawless hands with exactly five distinct slender fingers, authentic non-plastic skin texture with visible organic pores, "
     "coherent natural facial symmetry, zero distorted digits, zero fused fingers, zero extra limbs, zero floating artifacts"
@@ -129,14 +126,14 @@ STYLE_PRESETS = {
         "desc": "Loş ortam, mat yağlıboya dokusu, dengeli gölgeler",
         "medium": "paint",
         "prefix": "Atmospheric concept art painting, digital illustration, matte texture, soft muted colors, low-key chiaroscuro lighting. ",
-        "suffix": f", painterly textured finish, soft ambient shadow transitions"
+        "suffix": ", painterly textured finish, soft ambient shadow transitions"
     },
     "cinematic_35mm": {
         "name": "Sinematik 35mm Film",
         "desc": "Kodak Portra greni, organik alan derinliği",
         "medium": "photo",
         "prefix": "Cinematic 35mm film still, Kodak Portra 400 color grading, soft organic depth of field, authentic subtle film grain. ",
-        "suffix": f", natural candid lighting, real micro-texture, 35mm anamorphic frame"
+        "suffix": ", natural candid lighting, real micro-texture, 35mm anamorphic frame"
     },
     "anime_concept": {
         "name": "Premium Anime",
@@ -150,21 +147,21 @@ STYLE_PRESETS = {
         "desc": "Doğal kusurlar, sıfır filtre, gerçek insan dokusu",
         "medium": "photo",
         "prefix": "Unedited candid documentary photography, shot on 85mm f/1.8 lens, natural daylight. ",
-        "suffix": f", zero AI smoothing, zero beauty filter, true realistic contrast"
+        "suffix": ", zero AI smoothing, zero beauty filter, true realistic contrast"
     },
     "dark_baroque": {
         "name": "Karanlık Barok / Rembrandt",
         "desc": "Rembrandt derin gölgeleri, antika tuval patinası",
         "medium": "paint",
         "prefix": "Classic oil painting on canvas, 17th century Baroque tenebrism, dramatic Rembrandt chiaroscuro. ",
-        "suffix": f", deep rich shadows, earthy umber and ochre palette, visible textured brush impasto, museum lighting"
+        "suffix": ", deep rich shadows, earthy umber and ochre palette, visible textured brush impasto, museum lighting"
     },
     "cyberpunk_noir": {
         "name": "Siberpunk Neon Noir",
         "desc": "Islak zemin, buğulu neon, blade runner atmosferi",
         "medium": "photo",
         "prefix": "Cinematic cyberpunk film noir, rainy dystopian night, muted wet pavement reflections. ",
-        "suffix": f", soft diffused amber and cyan neon lights through mist, heavy film grain, dirty gritty urban realism"
+        "suffix": ", soft diffused amber and cyan neon lights through mist, heavy film grain, dirty gritty urban realism"
     },
     "pure_raw": {
         "name": "Filtresiz (Ham Prompt)",
@@ -252,18 +249,12 @@ def compile_physically_grounded_prompt(user_prompt: str, style_key: str = "matte
 
 
 def crpf_regularize_latents(latents: torch.Tensor, step: int, h_half: int, w_half: int) -> torch.Tensor:
-    """
-    CRPF-Flow (Contrastive Resonant Phase Field) Manifold Düzenleyicisi
-    - Step 0 & 1: DFD (Dynamic Frequency De-Aliasing) -> Çift obje (çift şömine, fazla el) modlarını kırar.
-    - Step 2 & 3: OPR (Organic Phase Regularizer) -> Midjourney plastik tenini Laplacian faz titremesi ile parçalar, organik gözenek ve lif açar.
-    - Süre: < 2 milisaniye. GPU VRAM: 0 MB ek yük.
-    """
+    """Adım 0-1 çift obje modlarını, adım 2-3 plastik teni kırar."""
     try:
         with torch.no_grad():
             b, n, c = latents.shape
             z = latents.view(b, h_half, w_half, c)
             
-            # Aşama 1: Kaba mekansal mod temizliği (Adım 0 ve 1)
             if step in (0, 1):
                 coarse = z[:, :, :, :12]
                 c_mean = coarse.mean(dim=(1, 2), keepdim=True)
@@ -271,10 +262,8 @@ def crpf_regularize_latents(latents: torch.Tensor, step: int, h_half: int, w_hal
                 # Çift odak oluşmasını engelleyen kaba genlik sınırlayıcı
                 z[:, :, :, :12] = torch.clamp(coarse, c_mean - 2.85 * c_std, c_mean + 2.85 * c_std)
                 
-            # Aşama 2: Organik Faz Düzenleyicisi (Adım 2 ve 3)
             elif step in (2, 3):
                 detail = z[:, :, :, 16:]
-                # 2D Mekansal Laplacian Operatörü
                 laplacian = (
                     -4.0 * detail 
                     + torch.roll(detail, 1, 1) + torch.roll(detail, -1, 1) 
@@ -322,18 +311,18 @@ def fast_latents_to_b64(latents, height, width, pipe):
         return None
 
 
-class HyperFluxEngine:
+class GroselEngine:
     _instance = None
     vae_blend_px = None
 
     @classmethod
     def get_instance(cls):
         if cls._instance is None:
-            cls._instance = HyperFluxEngine()
+            cls._instance = GroselEngine()
         return cls._instance
 
     def __init__(self):
-        print("[-] HyperFlux v3.0 CRPF-Flow Motoru Baslatiliyor...")
+        print("[-] Grosel classic motoru baslatiliyor...")
         torch.cuda.empty_cache()
 
         self.pipe = Flux2KleinPipeline.from_pretrained(
@@ -348,10 +337,9 @@ class HyperFluxEngine:
 
         self.pipe.enable_sequential_cpu_offload()
 
-        # Warmup
         print("[-] Model Warmup yapiliyor...")
         _ = self.pipe(prompt="warmup", num_inference_steps=1, width=512, height=512)
-        print("[OK] HyperFlux CRPF-Flow Motoru Hazir ve Calisiyor!")
+        print("[OK] Grosel classic motoru hazir.")
 
     @staticmethod
     def _module_bytes(module):
@@ -391,27 +379,17 @@ class HyperFluxEngine:
                  aspect_ratio: str = "16:9", quality: str = "1080p", 
                  seed: int | None = None, enable_crpf: bool = True, step_callback = None,
                  enable_geo: bool = True, steps_override=None):
-        """
-        CRPF-Flow Destekli Kusursuz Uretim:
-        - Akilli Geometrik Prompt Derleyicisi
-        - Adim Basi CRPF Tensor Faz Duzenleyicisi
-        - Hiz: 4.5 - 5.5 saniye
-        - VRAM: 1.1 - 1.39 GB
-        - 4K Multi-Scale Edge-Preserving Super-Resolution
-        """
         if seed is None or seed < 0:
             seed = torch.randint(0, 2**32 - 1, (1,)).item()
             
         generator = torch.Generator(device="cpu").manual_seed(seed)
         
-        # Akilli Geometrik Prompt Derleme
         final_prompt = compile_physically_grounded_prompt(prompt, style_key, enable_geo)
         
         base_w, base_h, target_w, target_h, steps, upscale = get_dimensions(quality, aspect_ratio)
         if steps_override:
             steps = max(1, min(20, int(steps_override)))
         
-        # Manifold patch boyutlari
         lh = 2 * (int(base_h) // (self.pipe.vae_scale_factor * 2))
         lw = 2 * (int(base_w) // (self.pipe.vae_scale_factor * 2))
         h_half, w_half = lh // 2, lw // 2
@@ -428,7 +406,6 @@ class HyperFluxEngine:
             
             latents = callback_kwargs.get("latents")
             
-            # CRPF-Flow Faz Düzenlemesini Uygula (Çift objeleri ve plastik teni kırar)
             if enable_crpf and latents is not None:
                 latents = crpf_regularize_latents(latents, step, h_half, w_half)
                 callback_kwargs["latents"] = latents
@@ -467,7 +444,6 @@ class HyperFluxEngine:
             
         final_image = result.images[0]
         
-        # 2K / 4K Edge-Preserving Multi-Scale Super-Resolution
         if upscale and (target_w != base_w or target_h != base_h):
             final_image = final_image.resize((target_w, target_h), Image.Resampling.LANCZOS)
             final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.5, percent=120, threshold=2))
@@ -481,7 +457,7 @@ class HyperFluxEngine:
         kpx_s = (total_pixels / 1000.0) / total_time if total_time > 0 else 0
         
         intervals = [(step_times[i] - step_times[i - 1]) * 1000 for i in range(1, len(step_times))]
-        step_times_ms = [int(round(intervals[0]))] + [int(round(x)) for x in intervals] if intervals else []
+        step_times_ms = [round(intervals[0])] + [round(x) for x in intervals] if intervals else []
         
         timestamp_str = time.strftime("%Y%m%d_%H%M%S")
         clean_name = "".join(c for c in prompt[:25] if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
@@ -499,6 +475,8 @@ class HyperFluxEngine:
             "aspect_ratio": aspect_ratio,
             "style_name": preset["name"],
             "resolution": f"{target_w}x{target_h}",
+            "native_resolution": f"{base_w}x{base_h}",
+            "detail_scale": 1.0,
             "steps": steps,
             "step_times_ms": step_times_ms,
             "total_time": round(total_time, 2),

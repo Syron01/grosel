@@ -153,6 +153,6 @@ def test_inilen_kademe_olculmemisse_cumlde_sayi_uydurulmaz(history):
 
 def test_olculmus_indirme_sayiyi_soyler(history):
     history(_runs(6.2 * 1024, "1080p") + _runs(3.4 * 1024, "720p"))
-    tier, guard = server.guard_quality("1080p", "16:9")
+    _tier, guard = server.guard_quality("1080p", "16:9")
     assert guard["measured"] is True
     assert "tahmini tepe 3.40 GB" in server.guard_status(guard)

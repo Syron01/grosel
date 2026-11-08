@@ -1,5 +1,5 @@
 """
-HyperFlux Fast Engine — FP8 resident inference path.
+Grosel fast engine — FP8 resident inference path.
 
 Neden hizli:
   * Tum Linear katmanlari FP8 (e4m3) olarak tutulur; her adimda PCIe uzerinden 7.7 GB
@@ -11,19 +11,20 @@ Neden hizli:
   * VRAM 16 GB+ ise hicbir takas yapilmaz, iki model de VRAM'de kalir.
 """
 
-import os
-import io
-import time
 import base64
-import hashlib
 import gc
-import torch
-import numpy as np
-from PIL import Image
-from diffusers import Flux2KleinPipeline, FlowMatchEulerDiscreteScheduler
+import hashlib
+import io
+import os
+import time
 
-from web_app.config import FLUX_MODEL, GALLERY_DIR, SR_MAX_MP, SR_MAX_SCALE
+import numpy as np
+import torch
+from diffusers import FlowMatchEulerDiscreteScheduler, Flux2KleinPipeline
+from PIL import Image
+
 from web_app import quality_math
+from web_app.config import FLUX_MODEL, GALLERY_DIR, SR_MAX_MP, SR_MAX_SCALE
 from web_app.fp8_layers import convert_to_fp8, convert_to_fp8_native
 from web_app.resolutions import detail_target
 
@@ -157,8 +158,6 @@ class FastKleinEngine:
             f"dual_resident={self._dual_resident} | serbest VRAM {free_vram_gb():.2f} GB"
         )
 
-    # ------------------------------------------------------------------ helpers
-
     @staticmethod
     def _module_bytes(module):
         total = sum(p.numel() * p.element_size() for p in module.parameters())
@@ -263,7 +262,6 @@ class FastKleinEngine:
         self._tf_down()
         t1 = time.time()
         self._te_up()
-        t2 = time.time()
         emb = self._encode(prompt)
         self._emb_cache[key] = emb.to("cpu", non_blocking=True)
         t3 = time.time()
@@ -273,8 +271,6 @@ class FastKleinEngine:
         self.last_swap_time = round((t1 - t0) + (t4 - t3), 2)
         self.last_swapped = True
         return emb, False
-
-    # --------------------------------------------------------------- generation
 
     def _generate_steps(self, prompt_embeds, width, height, steps, seed, step_callback=None,
                         enable_crpf=True, sigmas=None, output_type="pil", capture=False):
@@ -425,8 +421,12 @@ class FastKleinEngine:
                  seed=None, enable_crpf=True, step_callback=None, status_callback=None,
                  enable_geo=True, steps_override=None, refine_steps=0, refine_sigma=0.15,
                  sigmas=None, detail_pass=True, detail_max_mp=None):
-        from web_app.engine import (compile_physically_grounded_prompt, get_dimensions,
-                                    STYLE_PRESETS, save_sidecar)
+        from web_app.engine import (
+            STYLE_PRESETS,
+            compile_physically_grounded_prompt,
+            get_dimensions,
+            save_sidecar,
+        )
 
         if seed is None or seed < 0:
             seed = torch.randint(0, 2 ** 32 - 1, (1,)).item()
@@ -481,7 +481,7 @@ class FastKleinEngine:
         decode = getattr(self, "_last_decode", 0.0)
         intervals = [marks[i] - marks[i - 1] for i in range(1, len(marks))]
         first_step = max(t_gen - decode - sum(intervals), 0.0)
-        step_times_ms = [int(round(first_step * 1000))] + [int(round(d * 1000)) for d in intervals]
+        step_times_ms = [round(first_step * 1000)] + [round(d * 1000) for d in intervals]
         if upscale and (target_w, target_h) != (gen_w, gen_h):
             # Lanczos'un negatif lobu keskin kaynağa uygulanınca kenarlarda halka yapıyor;
             # büyütmede lobsuz bikübik, küçültmede Lanczos kalır.

@@ -1,5 +1,9 @@
 """Fast engine uctan uca olcum."""
-import os, sys, time, json
+import json
+import os
+import sys
+import time
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from web_app.fast_engine import FastKleinEngine
 

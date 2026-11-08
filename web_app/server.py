@@ -1,19 +1,18 @@
-"""
-HyperFlux Web Application Server (FastAPI + WebSocket + Telemetry HUD + Gallery Manager)
-"""
+"""Grosel web server: FastAPI, WebSocket generation, telemetry and gallery."""
 
-import os
-import sys
-import json
-import random
-import time
 import asyncio
+import json
 import logging
-from contextlib import asynccontextmanager
+import os
+import random
+import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
 from statistics import median
+
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
@@ -22,23 +21,23 @@ PARENT_DIR = os.path.dirname(CURRENT_DIR)
 if PARENT_DIR not in sys.path:
     sys.path.insert(0, PARENT_DIR)
 
+from web_app import inference_math, quality_math, resident_math
 from web_app.config import GALLERY_DIR, META_DIR, RUNS_FILE, VRAM_CEILING_GB
 from web_app.engine import STYLE_PRESETS, compile_physically_grounded_prompt
 from web_app.resolutions import RESOLUTION_MATRIX, fit_mp_ceiling
-from web_app import inference_math, quality_math, resident_math
 from web_app.schemas import GenerateRequest, MathSolveRequest, OptimizeRequest
 from web_app.storage import read_json, write_json_atomic
 
-logger = logging.getLogger("hyperflux")
+logger = logging.getLogger("grosel")
 BACKEND = os.environ.get("HYPERFLUX_BACKEND", "fast").lower()
 if BACKEND not in {"fast", "classic", "qwen"}:
     raise RuntimeError(f"Desteklenmeyen HYPERFLUX_BACKEND: {BACKEND}")
 
 if BACKEND == "classic":
-    from web_app.engine import HyperFluxEngine as Engine
+    from web_app.engine import GroselEngine as Engine
 elif BACKEND == "qwen":
-    from web_app.qwen_engine import QwenStreamEngine as Engine
     from web_app.qwen_engine import QWEN_DIMENSIONS
+    from web_app.qwen_engine import QwenStreamEngine as Engine
 else:
     from web_app.fast_engine import FastKleinEngine as Engine
 
@@ -48,7 +47,7 @@ FLUX_TIERS = [
     {"value": 12, "label": "Pro 12", "title": "Pro: 12 adım; süre artar, kalite artışı garanti değil"},
     {"value": 20, "label": "Ultra 20", "title": "Ultra: 20 adım; en uzun yol, damıtılmış modelde kazanç garanti değil"},
 ]
-FLUX_AUTO_STEPS = {"420p": 3, "720p": 4, "1080p": 4, "2K": 4, "4K": 4}
+FLUX_AUTO_STEPS = {q: data["steps"] for q, data in RESOLUTION_MATRIX.items()}
 FLUX_DIMS = {
     q: {k: f"{v[0]}×{v[1]}" for k, v in data.items() if isinstance(v, tuple)}
     for q, data in RESOLUTION_MATRIX.items()
@@ -74,7 +73,7 @@ async def lifespan(_):
         math_executor.shutdown(wait=False, cancel_futures=True)
 
 
-app = FastAPI(title="HyperFlux Studio", lifespan=lifespan)
+app = FastAPI(title="Grosel Studio", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 CONTENT_SECURITY_POLICY = (
@@ -630,18 +629,25 @@ async def websocket_generate(websocket: WebSocket):
                     variant_seed = (base_seed + i) % (2 ** 31 - 1)
                     step_cb, status_cb = make_callbacks(i, count)
 
-                    def run_inference(cb=step_cb, st=status_cb, s=variant_seed):
-                        kwargs = dict(
-                            prompt=prompt,
-                            style_key=style_key,
-                            aspect_ratio=aspect_ratio,
-                            quality=quality,
-                            seed=s,
-                            enable_crpf=enable_crpf,
-                            enable_geo=enable_geo,
-                            steps_override=steps_override,
-                            step_callback=cb,
-                        )
+                    def run_inference(cb=step_cb, st=status_cb, s=variant_seed,
+                                      prompt=prompt, style_key=style_key,
+                                      aspect_ratio=aspect_ratio, quality=quality,
+                                      enable_crpf=enable_crpf, enable_geo=enable_geo,
+                                      steps_override=steps_override,
+                                      refine_steps=refine_steps,
+                                      refine_sigma=refine_sigma, sigmas=sigmas,
+                                      req=req, detail_cap=detail_cap):
+                        kwargs = {
+                            "prompt": prompt,
+                            "style_key": style_key,
+                            "aspect_ratio": aspect_ratio,
+                            "quality": quality,
+                            "seed": s,
+                            "enable_crpf": enable_crpf,
+                            "enable_geo": enable_geo,
+                            "steps_override": steps_override,
+                            "step_callback": cb,
+                        }
                         if BACKEND != "classic":
                             kwargs["status_callback"] = st
                             kwargs["refine_steps"] = refine_steps
@@ -704,4 +710,4 @@ async def websocket_generate(websocket: WebSocket):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("web_app.server:app", host="127.0.0.1",
-                port=int(os.environ.get("HYPERFLUX_PORT", "7860")), reload=False)
+                port=int(os.environ.get("HYPERFLUX_PORT", "7870")), reload=False)

@@ -3,9 +3,9 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hyperflux-studio"
-version = "0.1.0"
-description = "Bütçeli görsel model dönüştürme ve çıkarım yerleşim platformu"
+name = "grosel-studio"
+version = "1.0.0"
+description = "Grosel — VRAM-budgeted image inference studio with a measured quality contract"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.142,<1",
@@ -38,3 +38,6 @@ web_app = ["templates/*.html", "static/*.css", "static/*.js"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[project.scripts]
+grosel = "web_app.cli:main"

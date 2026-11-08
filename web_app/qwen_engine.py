@@ -1,4 +1,4 @@
-"""HyperFlux Qwen Engine — 31.7 GB model, 2.3 GB altı faz tepesi.
+"""Grosel Qwen engine — 31.7 GB model, under 2.3 GB phase peak.
 
 Neden sığar:
   * Transformer FP8 (7.6 GB) blok grubuyla akıtılır; VRAM'de yalnızca o anki grup var.
@@ -17,19 +17,27 @@ import time
 import bitsandbytes as bnb
 import torch
 import torch.nn as nn
-from huggingface_hub import snapshot_download
 from diffusers import (
     AutoencoderKLQwenImage21,
     FlowMatchEulerDiscreteScheduler,
     QwenImage21Pipeline,
     QwenImage21Transformer2DModel,
 )
-from transformers import BitsAndBytesConfig, Qwen3VLForConditionalGeneration, Qwen3VLProcessor
+from huggingface_hub import snapshot_download
+from transformers import (
+    BitsAndBytesConfig,
+    Qwen3VLForConditionalGeneration,
+    Qwen3VLProcessor,
+)
 
-from web_app.engine import (STYLE_PRESETS, GALLERY_DIR, compile_physically_grounded_prompt,
-                            save_sidecar)
-from web_app.fp8_layers import convert_to_fp8_native
 from web_app import quality_math
+from web_app.engine import (
+    GALLERY_DIR,
+    STYLE_PRESETS,
+    compile_physically_grounded_prompt,
+    save_sidecar,
+)
+from web_app.fp8_layers import convert_to_fp8_native
 
 MODEL_ID = os.environ.get("HYPERFLUX_QWEN_ID", "Qwen/Qwen-Image-2.1")
 GROUP_SIZE = max(1, int(os.environ.get("HYPERFLUX_QWEN_GROUP", "2")))
@@ -186,6 +194,28 @@ def quantize_nf4_linears(module, skip_prefixes=(), prefix=""):
     return replaced
 
 
+def _load_nf4_text_encoder(snapshot, t0):
+    print("[qwen] text encoder NF4 yükleniyor...", flush=True)
+    bnb_cfg = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_use_double_quant=True,
+    )
+    text_encoder = Qwen3VLForConditionalGeneration.from_pretrained(
+        snapshot, subfolder="text_encoder", quantization_config=bnb_cfg,
+        torch_dtype=torch.bfloat16, device_map="cpu",
+        local_files_only=True, low_cpu_mem_usage=True,
+    )
+    if getattr(text_encoder.model, "visual", None) is not None:
+        text_encoder.model.visual = None
+    # Pipeline yalnızca hidden_states[-1] okuyor; lm_head logitleri hiç kullanılmıyor.
+    text_encoder.lm_head = torch.nn.Identity()
+    gc.collect()
+    print(f"[qwen] text encoder hazır {time.time()-t0:.1f}s", flush=True)
+    return text_encoder
+
+
 class QwenStreamEngine:
     _instance = None
 
@@ -227,43 +257,10 @@ class QwenStreamEngine:
             gc.collect()
             torch.cuda.empty_cache()
 
-            print("[qwen] text encoder NF4 yükleniyor...", flush=True)
             t2 = time.time()
-            bnb_cfg = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16,
-                bnb_4bit_use_double_quant=True,
-            )
-            self.text_encoder = Qwen3VLForConditionalGeneration.from_pretrained(
-                self.snapshot, subfolder="text_encoder", quantization_config=bnb_cfg,
-                torch_dtype=torch.bfloat16, device_map="cpu",
-                local_files_only=True, low_cpu_mem_usage=True,
-            )
-            if getattr(self.text_encoder.model, "visual", None) is not None:
-                self.text_encoder.model.visual = None
-            self.text_encoder.lm_head = torch.nn.Identity()
-            gc.collect()
-            print(f"[qwen] text encoder hazır {time.time()-t2:.1f}s", flush=True)
+            self.text_encoder = _load_nf4_text_encoder(self.snapshot, t2)
         else:
-            print("[qwen] text encoder NF4 yükleniyor...", flush=True)
-            bnb_cfg = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16,
-                bnb_4bit_use_double_quant=True,
-            )
-            self.text_encoder = Qwen3VLForConditionalGeneration.from_pretrained(
-                self.snapshot, subfolder="text_encoder", quantization_config=bnb_cfg,
-                torch_dtype=torch.bfloat16, device_map="cpu",
-                local_files_only=True, low_cpu_mem_usage=True,
-            )
-            if getattr(self.text_encoder.model, "visual", None) is not None:
-                self.text_encoder.model.visual = None
-            # Pipeline yalnızca hidden_states[-1] okuyor; lm_head logitleri hiç kullanılmıyor.
-            self.text_encoder.lm_head = torch.nn.Identity()
-            gc.collect()
-            print(f"[qwen] text encoder hazır {time.time()-t0:.1f}s", flush=True)
+            self.text_encoder = _load_nf4_text_encoder(self.snapshot, t0)
 
             print("[qwen] transformer BF16 yükleniyor...", flush=True)
             t1 = time.time()
@@ -338,8 +335,6 @@ class QwenStreamEngine:
             f"| bütçe {self.budget_gb:.1f} GB | serbest VRAM {torch.cuda.mem_get_info()[0]/GB:.2f} GB",
             flush=True,
         )
-
-    # ------------------------------------------------------------------ phases
 
     @staticmethod
     def _layer_in(module, args):
@@ -418,8 +413,6 @@ class QwenStreamEngine:
         self._decode_peak_mb = 0.0
         self._step_peak_mb = 0.0
 
-    # ------------------------------------------------------------------ encode
-
     def _encode(self, prompt):
         if self._strict_budget() and self._transformer_on_cuda():
             self.transformer.to("cpu")
@@ -444,8 +437,6 @@ class QwenStreamEngine:
         pos, mask = self._encode(prompt)
         self._emb_cache[key] = (pos.to("cpu"), mask.to("cpu") if mask is not None else None)
         return pos, mask, False
-
-    # --------------------------------------------------------------- generate
 
     def generate(self, prompt, style_key="matte_chiaroscuro", aspect_ratio="16:9",
                  quality="1080p", seed=None, enable_crpf=True, step_callback=None,
@@ -530,7 +521,7 @@ class QwenStreamEngine:
         peak_mb = max(encode_peak_mb, self._denoise_peak_mb, self._decode_peak_mb)
         intervals = [marks[i] - marks[i - 1] for i in range(1, len(marks))]
         first_step = max(t_gen - self._decode_time_s - sum(intervals), 0.0)
-        step_times_ms = [int(round(first_step * 1000))] + [int(round(d * 1000)) for d in intervals]
+        step_times_ms = [round(first_step * 1000)] + [round(d * 1000) for d in intervals]
 
         ts = time.strftime("%Y%m%d_%H%M%S")
         clean = "".join(c for c in prompt[:25] if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
@@ -600,8 +591,6 @@ class QwenStreamEngine:
             "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         })
         return telemetry
-
-    # ----------------------------------------------------------------- system
 
     def system_info(self):
         vae_bytes = _bytes(self.vae)

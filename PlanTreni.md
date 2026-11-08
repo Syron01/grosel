@@ -357,3 +357,21 @@ Toplam test: 183 gecti.
     (NATIVE_BROWSER_VIEWPORT_UNAVAILABLE), sonra sekme yanit vermeyi birakti.
     Yapilacak: tarayici paneli acikken Studio + Benchmarks'a bir bakis.
 Toplam test: 183 gecti. Sunucu hala calisiyor (fast, 7860, task b9qvl9mrm).
+
+## 7 Kasım 2026 — yatırımcı öncesi denetim (hijyen + marka + canlı kanıt)
+Marka kararı: **Grosel** (arayüz, sekme başlığı, başlatıcılar). Varsayılan port **7870**.
+[x] Silinen: `_experiments/` (24 MB), `__pycache__`/`.pytest_cache`, kök test artefaktları,
+    `legacy_studio.html`, `experiments/` ve ona bağlı 4 ölü benchmark.
+[x] Gerçek hatalar: FastKleinEngine'de silinen `decode` değişkeni her üretimde NameError
+    verecekti (canlı testte yakalandı, `decode_time` ile onarıldı); Refine/Copy düğmeleri
+    ikonu metinle siliyordu; Qwen benchmark'ı 180 s zaman aşımına takılıyordu (600 s +
+    Qwen'de protokol kapalı); Method katmanı matris yerine fiili `native_resolution`
+    kullanıyor; classic telemetriye `native_resolution` eklendi.
+[x] Canlı doğrulama (fast, 7870): benchmark 5/5 · 1080p cold 12.83 s / 4.92 GB, warm
+    11.08 s / 4.84 GB · 720p cold 4.61 s / 4.92 GB, warm 3.08 s / 4.18 GB · kalite
+    sözleşmesi ok:true · tarayıcı konsolu hatasız.
+[x] Tavan penceresi temiz: 1080p son 5 koşu en kötü 4.92 GB ≤ 5.00; detail cap 1.596 MP.
+[x] Test: 184 vaka geçti (125 test fonksiyonu); ruff F/E9 sınıfı temiz.
+! Galeri şu an 8 görsel (3 taze üretim + 5 benchmark). Eski deneme görselleri bu makinede yok.
+! Fast motor açılışta kartın çoğunu ister; Chrome/Steam/Spotify açıkken warmup OOM.
+  Sahne öncesi diğer GPU uygulamalarını kapat — `start_studio.bat` bunu not ediyor.

@@ -2,11 +2,16 @@
 Faz bazli profil: text encoder / her denoise adimi / VAE decode nerede vakit yiyor?
 Kullanim: python bench_profile.py [offload|resident]
 """
-import os, sys, time, gc, json
+import gc
+import json
+import os
+import sys
+import time
+
 import torch
 from diffusers import Flux2KleinPipeline
 
-SNAPSHOT_DIR = r"C:\Users\theay\.cache\huggingface\hub\models--black-forest-labs--FLUX.2-klein-4B\snapshots\e7b7dc27f91deacad38e78976d1f2b499d76a294"
+MODEL_ID = os.environ.get("HYPERFLUX_FLUX_MODEL", "black-forest-labs/FLUX.2-klein-4B")
 
 PROMPT = (
     "Atmospheric fine art painting, moody low-key lighting. Waist-up composition of a young woman "
@@ -28,7 +33,7 @@ def vram():
 def main(mode):
     torch.cuda.empty_cache(); gc.collect()
     t_load = time.time()
-    pipe = Flux2KleinPipeline.from_pretrained(SNAPSHOT_DIR, torch_dtype=torch.bfloat16, local_files_only=True)
+    pipe = Flux2KleinPipeline.from_pretrained(MODEL_ID, torch_dtype=torch.bfloat16, local_files_only=True)
     pipe.vae.enable_slicing(); pipe.vae.enable_tiling()
 
     if mode == "offload":
@@ -43,7 +48,6 @@ def main(mode):
         pipe.vae.to("cuda")
     print(f"[load] {time.time() - t_load:.1f}s | vram alloc/peak: {vram()}")
 
-    phases = {}
     steps_t = []
 
     def cb(p, i, t, kw):

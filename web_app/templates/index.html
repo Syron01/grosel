@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HyperFlux — GPU inference studio</title>
+<title>Grosel — GPU inference studio</title>
+<meta name="description" content="Grosel runs an existing image model inside a fixed VRAM budget, with measured latency, peak memory and a quality contract on every frame.">
+<meta name="theme-color" content="#0F1114">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/static/app.css">
 </head>
@@ -31,7 +33,7 @@
 <header class="appbar">
   <div class="brand">
     <svg class="ic brand-mark" aria-hidden="true"><use href="#i-bolt"/></svg>
-    <span class="brand-name">HyperFlux</span>
+    <span class="brand-name">Grosel</span>
   </div>
 
   <nav class="tabs" role="tablist" aria-label="Sections">
@@ -178,7 +180,7 @@
             <button class="btn-text" id="copyPromptBtn">
               <svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg><span>Copy prompt</span>
             </button>
-            <a class="btn-text" id="downloadBtn" download="hyperflux.png">
+            <a class="btn-text" id="downloadBtn" download="grosel.png">
               <svg class="ic" aria-hidden="true"><use href="#i-download"/></svg><span>PNG</span>
             </a>
           </div>
@@ -596,7 +598,7 @@ B = 5 GB ⇒ 1024×576: 3.83 GB · 1280×704: 3.96 GB · 1080p 2:3: 4.02 GB</pre
       <article class="doc">
         <header class="doc-head">
           <h1>Where residency, quantisation and cache separate</h1>
-          <p class="lede">HyperFlux is not a new image model. It is a conversion and scheduling layer that runs an existing model inside a given VRAM budget. Every value on this page is read from the live engine.</p>
+          <p class="lede">Grosel is not a new image model. It is a conversion and scheduling layer that runs an existing model inside a given VRAM budget. Every value on this page is read from the live engine.</p>
         </header>
 
         <section id="a-system" class="doc-section">
@@ -721,7 +723,7 @@ C_0(∅) = 0 ,  objective: min_S C_T(S)</pre>
         </section>
 
         <footer class="doc-foot mono">
-          <span>HyperFlux</span>
+          <span>Grosel</span>
           <span id="docStamp">—</span>
         </footer>
       </article>

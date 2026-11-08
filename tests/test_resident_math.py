@@ -1,7 +1,14 @@
 import pytest
 
-from web_app.resident_math import (A_INTERCEPT_GB, A_MP_SLOPE_GB, NF4_GB, TE_STREAM_PEAK_GB,
-                                   VAE_PEAK_GB, activation_gb, plan)
+from web_app.resident_math import (
+    A_INTERCEPT_GB,
+    A_MP_SLOPE_GB,
+    NF4_GB,
+    TE_STREAM_PEAK_GB,
+    VAE_PEAK_GB,
+    activation_gb,
+    plan,
+)
 
 
 def phase_peaks(payload):

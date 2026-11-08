@@ -230,7 +230,7 @@
     els.archBf16.textContent = gb(s.weights_bf16_bytes);
     els.archFp8.textContent = isFast ? gb(fp8) : (isQwen ? (s.resident_mode ? `${gb(s.weights_gpu_bytes)} 4-bit` : `${gb(fp8)} streamed`) : "BF16 mode");
     els.archPinned.textContent = isFast ? `${gb(fp8)} pinned on CPU` : (isQwen ? (s.resident_mode ? "4-bit · no blocks" : `${s.group_size || 2} blocks/group`) : "sequential CPU flow");
-    els.archDual.textContent = isQwen ? (s.resident_mode ? "4-bit resident" : "phase order") : (s.dual_resident ? "dual resident" : "tek resident");
+    els.archDual.textContent = isQwen ? (s.resident_mode ? "4-bit resident" : "phase order") : (s.dual_resident ? "dual resident" : "single resident");
     els.fBudget.textContent = s.budget_gb ? num(s.budget_gb, 2) : "—";
     const tf = s.modules.find(m => m.id === "transformer");
     const te = s.modules.find(m => m.id === "text_encoder");
@@ -280,6 +280,10 @@
       els.crpfToggle.style.display = "none";
       els.detailToggle.style.display = "none";
     }
+    // The benchmark protocol is calibrated on the FLUX fast path; a live Qwen
+    // suite would take ~20 minutes and overwrite that table.
+    els.benchStart.disabled = isQwen;
+    els.benchStart.querySelector("span").textContent = isQwen ? "FLUX-only protocol" : "Run benchmark";
     if (els.costModeNote) {
       els.costModeNote.textContent = isQwen
         ? "Qwen runs phases in order: max(encode, denoise, decode). The dual/swap formula below describes the FLUX fast path."
@@ -551,9 +555,10 @@
   els.optimizePromptBtn.addEventListener("click", async () => {
     const prompt = els.promptInput.value.trim();
     if (!prompt) return els.promptInput.focus();
-    const old = els.optimizePromptBtn.textContent;
+    const label = els.optimizePromptBtn.querySelector("span");
+    const old = label.textContent;
     els.optimizePromptBtn.disabled = true;
-    els.optimizePromptBtn.textContent = "compiling…";
+    label.textContent = "Compiling…";
     try {
       const data = await getJSON("/api/optimize_prompt", {
         method: "POST",
@@ -568,15 +573,16 @@
       logEvent("prompt compile failed", "warn");
     } finally {
       els.optimizePromptBtn.disabled = false;
-      els.optimizePromptBtn.textContent = old;
+      label.textContent = old;
     }
   });
 
   els.copyPromptBtn.addEventListener("click", async () => {
+    const label = els.copyPromptBtn.querySelector("span");
     try {
       await navigator.clipboard.writeText(els.promptInput.value);
-      els.copyPromptBtn.textContent = "Copied";
-      setTimeout(() => { els.copyPromptBtn.textContent = "Copy prompt"; }, 1400);
+      label.textContent = "Copied";
+      setTimeout(() => { label.textContent = "Copy prompt"; }, 1400);
     } catch {
       logEvent("clipboard write failed", "warn");
     }
@@ -660,7 +666,7 @@
     els.mainRender.src = url;
     els.mainRender.tabIndex = 0;
     els.downloadBtn.href = url;
-    els.downloadBtn.download = filename || "hyperflux.png";
+    els.downloadBtn.download = filename || "grosel.png";
   }
 
   function resetGrid(count) {
@@ -684,7 +690,7 @@
         state.tiles.forEach(t => t.classList.remove("selected"));
         tile.classList.add("selected");
         els.downloadBtn.href = img.src;
-        els.downloadBtn.download = img.dataset.filename || "hyperflux.png";
+        els.downloadBtn.download = img.dataset.filename || "grosel.png";
         openLightbox(img.src);
       });
       els.variantGrid.appendChild(tile);
@@ -927,7 +933,7 @@
     legend.push(`<span class="lg"><span class="sw" style="background:var(--primary)"></span>encode ${secs((encTotal + swap) / 1000)}</span>`);
     legend.push(`<span class="lg"><span class="sw" style="background:#48505E"></span>${stepLabel} ${secs(denTotal / 1000)}</span>`);
     legend.push(`<span class="lg"><span class="sw" style="background:#6A7382"></span>decode ${secs(dec / 1000)}</span>`);
-    if (swap > 0) legend.push(`<span class="lg"><span class="sw" style="background:var(--warn)"></span>takas ${secs(swap / 1000)}</span>`);
+    if (swap > 0) legend.push(`<span class="lg"><span class="sw" style="background:var(--warn)"></span>swap ${secs(swap / 1000)}</span>`);
     els.timelineLegend.innerHTML = legend.join("");
     els.timelineTotal.textContent = `${secs(t.total_time)} total`;
   }
@@ -1239,6 +1245,10 @@
 
   function startBench() {
     if (bench.running) return;
+    if (state.system && state.system.engine === "qwen") {
+      logEvent("benchmark protocol is FLUX-only", "warn");
+      return;
+    }
     bench.running = true;
     bench.results = BENCH.map(() => null);
     els.benchStart.disabled = true;
@@ -1265,7 +1275,7 @@
 
         try {
           const result = await new Promise((resolve, reject) => {
-            const timer = setTimeout(() => reject(new Error("timeout")), 180000);
+            const timer = setTimeout(() => reject(new Error("timeout")), 600000);
             const onMsg = e => {
               const msg = JSON.parse(e.data);
               if (msg.type === "step_progress") {

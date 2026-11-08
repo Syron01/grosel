@@ -1,7 +1,18 @@
 import numpy as np
+import pytest
 
-from web_app.inference_math import (LinearFit, Plan, _constraints_ok, _fit_linear, _loocv,
-                                    _pareto, _solve, _violation)
+from web_app import inference_math
+from web_app.inference_math import (
+    LinearFit,
+    Plan,
+    _constraints_ok,
+    _fit_linear,
+    _loocv,
+    _pareto,
+    _plans_from_runs,
+    _solve,
+    _violation,
+)
 
 
 def make_plan(name, time_s, peak_gb, native_mp, mode="fast"):
@@ -85,3 +96,18 @@ def test_loocv_reports_generalisation_not_training_fit():
 
 def test_loocv_is_conservative_below_four_samples():
     assert _loocv([[1.0], [2.0]], [1.0, 2.0]) == {"r2": 0.0, "mae": 0.0, "n": 2}
+
+
+def test_plan_uses_the_measured_native_grid(monkeypatch):
+    monkeypatch.setattr(inference_math.os.path, "exists", lambda _path: True)
+    run = {
+        "filename": "a.png", "mode": "fast", "quality": "1080p", "steps": 4,
+        "aspect_ratio": "16:9", "total_time": 15.0, "peak_vram_mb": 4900,
+        "resolution": "1920x1080", "native_resolution": "1680x944",
+        "prompt_cached": True, "decode_peak_mb": 820, "step_peak_mb": 4900,
+        "prompt": "test",
+    }
+    plan = _plans_from_runs([run], {})[0]
+    assert plan.native_mp == pytest.approx(1680 * 944 / 1e6)
+    assert plan.target_mp == pytest.approx(1920 * 1080 / 1e6)
+    assert plan.resolution == "1920x1080"

@@ -17,13 +17,13 @@ RUNS_FILE = str(Path(DATA_DIR) / "runs.json")
 QUALITY_FILE = str(Path(DATA_DIR) / "quality.json")
 FLUX_MODEL = os.environ.get("HYPERFLUX_FLUX_MODEL", "black-forest-labs/FLUX.2-klein-4B")
 
-# Detay gecisi: yuksek kademelerde model kucuk izgarada degil, alan tavanina
-# sigan buyuk izgarada dogrudan uretiyor. Adim suresi ve VRAM alanla buyudugu
-# icin tavan megapiksel ile konuyor (olcum: 2.2 MP @ 3.4 s/adim, 5.24 GB).
+# Detay geçişi: yüksek kademelerde model küçük ızgarada değil, alan tavanına
+# sığan büyük ızgarada doğrudan üretiyor. Adım süresi ve VRAM alanla büyüdüğü
+# için tavan megapiksel ile konuyor (ölçüm: 2.2 MP @ 3.4 s/adım, 5.24 GB).
 SR_MAX_SCALE = float(os.environ.get("HYPERFLUX_SR_MAX_SCALE", "2.0"))
 SR_MAX_MP = float(os.environ.get("HYPERFLUX_SR_MAX_MP", "2.2"))
 
-# Urun sozu: hangi model baglanirsa baglansin tepme VRAM bu tavani asamaz.
-# Tavan asilirsa kaliteyi dusurmeden once faz surekliligi devreye girer;
-# bu deger kalite sozlesmesinin plan degismezlerinden biridir.
+# Ürün sözü: hangi model bağlanırsa bağlansın tepe VRAM bu tavanı aşamaz.
+# Tavan aşılırsa kaliteyi düşürmeden önce faz sürekliliği devreye girer;
+# bu değer kalite sözleşmesinin plan değişmezlerinden biridir.
 VRAM_CEILING_GB = float(os.environ.get("HYPERFLUX_VRAM_CEILING_GB", "5.0"))

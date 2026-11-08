@@ -1,6 +1,6 @@
 """FP8 Linear katmanlari.
 
-FP8Linear       : agirlik FP8, hesaplama BF16 (her forward'da dequant). Guvenli, kanitlanmis.
+FP8Linear       : agirlik FP8, hesaplama BF16 (her forward'da dequant).
 FP8NativeLinear : agirlik FP8, matmul dogrudan FP8 tensor cekirdeginde (torch._scaled_mm).
 """
 

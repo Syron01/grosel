@@ -108,7 +108,7 @@ def get_dimensions(quality: str, ratio: str):
 
 def detail_target(base_w: int, base_h: int, target_w: int, target_h: int,
                   max_scale: float = 2.0, max_mp: float = 2.2, enabled: bool = True):
-    """Detay gecisinin uretecegi ızgara; 16'nın katına katlanır, hedefi aşmaz.
+    """Detay geçişinin üreteceği ızgara; 16'nın katına katlanır, hedefi aşmaz.
 
     Model bu ızgarada doğrudan örnekleme yapar; latent sonradan büyütülmez.
     Adım süresi ve VRAM alanla büyüdüğü için tavan ölçekten çok megapiksel ile

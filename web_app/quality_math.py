@@ -99,7 +99,7 @@ def detail_index(path: str, long_side: int = 1024) -> float:
     im = Image.open(path).convert("L")
     w, h = im.size
     s = long_side / max(w, h)
-    im = im.resize((max(32, int(round(w * s))), max(32, int(round(h * s)))),
+    im = im.resize((max(32, round(w * s)), max(32, round(h * s))),
                    Image.LANCZOS)
     a = np.asarray(im, dtype=np.float32) / 255.0
     return round(float(_laplacian(_median_5x5(a)).var()) * 1e6, 1)
@@ -139,13 +139,13 @@ def seam_z(path: str, periods: tuple[int, ...] | None = None) -> dict:
     z < 3 artefakt yok; 3-6 kuşkulu; > 6 görünür diki. Periyot, analiz ölçeğine
     göre ölçeklenir ki 4K karede de 2K karede de aynı eşik geçerli olsun.
     """
-    a, scale = load_luma(path)
+    a, _scale = load_luma(path)
     native_w = Image.open(path).size[0]
     d = np.abs(np.diff(a.mean(axis=0)))
     w = a.shape[1]
     out = {}
     for T in (periods or seam_periods()):
-        t = max(8, int(round(T * w / native_w)))
+        t = max(8, round(T * w / native_w))
         idx = np.arange(t, w - 1, t)
         if len(idx) < 3:
             continue
@@ -197,12 +197,12 @@ TILE_STRIDE_PX = 384
 
 
 def tiling_kwargs() -> dict:
-    """Sözleşmenin karo geometrisi: 512 px karo, 384 px adım → 128 px onusme.
+    """Sözleşmenin karo geometrisi: 512 px karo, 384 px adım → 128 px örtüşme.
 
-    Qwen'in diffusers varsayilanlari 256/192 (64 px onusme) olculen diki kusurunun
-    kaynagi idi; z=4.11 -> 0.17 bu kuralla indi. FLUX2'nin kendi varsayilani 1024
-    px karodur: onusme daha genis ama decode tepesi dort kat buyuk. Tavan sozu
-    icin karo kucultulur, onusme esigin altina dusurulmez.
+    Qwen'in diffusers varsayılanları 256/192 (64 px örtüşme) ölçülen diki kusurunun
+    kaynağı idi; z=4.11 -> 0.17 bu kuralla indi. FLUX2'nin kendi varsayılanı 1024
+    px karodur: örtüşme daha geniş ama decode tepesi dört kat büyük. Tavan sözü
+    için karo küçültülür, örtüşme eşiğin altına düşürülmez.
     """
     return {"tile_sample_min_height": TILE_MIN_PX, "tile_sample_min_width": TILE_MIN_PX,
             "tile_sample_stride_height": TILE_STRIDE_PX,
@@ -210,12 +210,12 @@ def tiling_kwargs() -> dict:
 
 
 def blend_px() -> int:
-    """Sozlesmenin hedef onusme pikseli (kurulmus degil, istenen)."""
+    """Sözleşmenin hedef örtüşme pikseli (kurulmuş değil, istenen)."""
     return TILE_MIN_PX - TILE_STRIDE_PX
 
 
 def blend_px_of(vae) -> int | None:
-    """VAE'nin FIILEN onusme pikseli. Telemetri buradan yazilir, sabitten degil."""
+    """VAE'nin FİİLEN örtüşme pikseli. Telemetri buradan yazılır, sabitten değil."""
     minimum = getattr(vae, "tile_sample_min_height", None)
     stride = getattr(vae, "tile_sample_stride_height", None)
     if minimum and stride:
@@ -223,18 +223,18 @@ def blend_px_of(vae) -> int | None:
     size = getattr(vae, "tile_sample_min_size", None)
     factor = getattr(vae, "tile_overlap_factor", None)
     if size and factor is not None:
-        return int(round(size * factor))
+        return round(size * factor)
     return None
 
 
 def apply_tiling(vae):
-    """Karo sozlesmesini her VAE API'sine uygular; kurulan onusme pikselini dondurur.
+    """Karo sözleşmesini her VAE API'sine uygular; kurulan örtüşme pikselini döndürür.
 
-    diffusers'ta iki farkli yuzey var: Qwen `enable_tiling(min, stride)` aliyor,
-    FLUX2 ise argsiz `enable_tiling()` + `tile_sample_min_size`/`tile_overlap_factor`
-    oznitelikleri kullanuyor. Motor-agnostik bir soz tek imzaya baglanamaz; hangisi
-    varsa onun karsiligi kurulur. Latent izgarasi ornekliden yenilir ki karo boyutu
-    degisince gizli uzay kaymasin.
+    diffusers'ta iki farklı yüzey var: Qwen `enable_tiling(min, stride)` alıyor,
+    FLUX2 ise argsız `enable_tiling()` + `tile_sample_min_size`/`tile_overlap_factor`
+    öznitelikleri kullanıyor. Motor-agnostik bir söz tek imzaya bağlanamaz; hangisi
+    varsa onun karşılığı kurulur. Latent ızgarası örnekliden yenilenir ki karo boyutu
+    değişince gizli uzay kaymasın.
     """
     kwargs = tiling_kwargs()
     if "tile_sample_min_height" in inspect.signature(vae.enable_tiling).parameters:

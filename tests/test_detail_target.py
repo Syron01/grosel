@@ -2,8 +2,12 @@
 
 import pytest
 
-from web_app.resolutions import (RESOLUTION_MATRIX, detail_target, fit_mp_ceiling,
-                                 get_dimensions)
+from web_app.resolutions import (
+    RESOLUTION_MATRIX,
+    detail_target,
+    fit_mp_ceiling,
+    get_dimensions,
+)
 
 # RTX 5060'da, fast arkadında ölçülen (ızgara MP, denoise tepesi MB).
 MEASURED = [(0.459, 4281.9), (0.922, 4554.0), (0.922, 4554.0), (2.058, 5241.6)]

@@ -1,8 +1,10 @@
 """Kalite taramasi: ayni prompt + seed, farkli ayarlar. Cikti: TEMP/q_<etiket>.png"""
-import os, sys, time
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from web_app.fast_engine import FastKleinEngine
 from web_app.engine import compile_physically_grounded_prompt
+from web_app.fast_engine import FastKleinEngine
 
 PROMPT = ("Rustik ahşap bir koltukta oturan genç bir kadın, yan profil, dağınık topuz saç, "
           "kahverengi yün hırka, elleri kucağında birleşmiş. Arka planda yanan şömine, "

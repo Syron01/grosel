@@ -439,9 +439,8 @@ class QwenStreamEngine:
         return pos, mask, False
 
     def generate(self, prompt, style_key="matte_chiaroscuro", aspect_ratio="16:9",
-                 quality="1080p", seed=None, enable_crpf=True, step_callback=None,
-                 status_callback=None, enable_geo=True, steps_override=None,
-                 refine_steps=0, refine_sigma=0.15, sigmas=None):
+                 quality="1080p", seed=None, step_callback=None,
+                 status_callback=None, enable_geo=True, steps_override=None):
         if seed is None or seed < 0:
             seed = torch.randint(0, 2 ** 32 - 1, (1,)).item()
 

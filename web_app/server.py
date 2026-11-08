@@ -8,6 +8,7 @@ import random
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from contextlib import asynccontextmanager
 from statistics import median
 
@@ -564,11 +565,22 @@ async def websocket_generate(websocket: WebSocket):
     await websocket.accept()
     loop = asyncio.get_event_loop()
 
+    send_failed = False
+
     def send_sync(payload):
+        nonlocal send_failed
+        if send_failed:
+            return
         try:
-            asyncio.run_coroutine_threadsafe(websocket.send_json(payload), loop).result(timeout=1.0)
-        except Exception:
-            pass
+            future = asyncio.run_coroutine_threadsafe(websocket.send_json(payload), loop)
+            future.result(timeout=1.0)
+        except FutureTimeoutError:
+            future.cancel()
+            logger.warning("Adım iletisi 1 sn içinde teslim edilemedi; ilerleme iletileri durduruldu.")
+            send_failed = True
+        except (RuntimeError, OSError):
+            logger.info("İstemci bağlantıyı kapattı; ilerleme iletileri durduruldu.")
+            send_failed = True
 
     def make_callbacks(index, count):
         def step_cb(info):
@@ -643,17 +655,20 @@ async def websocket_generate(websocket: WebSocket):
                             "aspect_ratio": aspect_ratio,
                             "quality": quality,
                             "seed": s,
-                            "enable_crpf": enable_crpf,
                             "enable_geo": enable_geo,
                             "steps_override": steps_override,
                             "step_callback": cb,
                         }
-                        if BACKEND != "classic":
+                        if BACKEND == "classic":
+                            kwargs["enable_crpf"] = enable_crpf
+                        elif BACKEND == "qwen":
+                            kwargs["status_callback"] = st
+                        elif BACKEND == "fast":
+                            kwargs["enable_crpf"] = enable_crpf
                             kwargs["status_callback"] = st
                             kwargs["refine_steps"] = refine_steps
                             kwargs["refine_sigma"] = refine_sigma
                             kwargs["sigmas"] = sigmas
-                        if BACKEND == "fast":
                             # Detay geçişi ölçümlü olarak yalnız FLUX yolunda bağlı;
                             # Qwen kademe zinciri ayrı doğrulanmayı bekliyor.
                             kwargs["detail_pass"] = req.detail_pass

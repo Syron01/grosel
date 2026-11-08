@@ -250,31 +250,32 @@ def compile_physically_grounded_prompt(user_prompt: str, style_key: str = "matte
 
 def crpf_regularize_latents(latents: torch.Tensor, step: int, h_half: int, w_half: int) -> torch.Tensor:
     """Adım 0-1 çift obje modlarını, adım 2-3 plastik teni kırar."""
-    try:
-        with torch.no_grad():
-            b, n, c = latents.shape
-            z = latents.view(b, h_half, w_half, c)
-            
-            if step in (0, 1):
-                coarse = z[:, :, :, :12]
-                c_mean = coarse.mean(dim=(1, 2), keepdim=True)
-                c_std = coarse.std(dim=(1, 2), keepdim=True) + 1e-5
-                # Çift odak oluşmasını engelleyen kaba genlik sınırlayıcı
-                z[:, :, :, :12] = torch.clamp(coarse, c_mean - 2.85 * c_std, c_mean + 2.85 * c_std)
-                
-            elif step in (2, 3):
-                detail = z[:, :, :, 16:]
-                laplacian = (
-                    -4.0 * detail 
-                    + torch.roll(detail, 1, 1) + torch.roll(detail, -1, 1) 
-                    + torch.roll(detail, 1, 2) + torch.roll(detail, -1, 2)
-                )
-                # Doku kanallarına organik faz pertürbasyonu (yapay zeka pürüzsüzlüğünü kırar)
-                z[:, :, :, 16:] = detail + 0.012 * torch.tanh(laplacian)
-                
-            return z.view(b, n, c)
-    except Exception:
+    if latents.ndim != 3:
         return latents
+    b, n, c = latents.shape
+    if n != h_half * w_half:
+        return latents
+    with torch.no_grad():
+        z = latents.view(b, h_half, w_half, c)
+
+        if step in (0, 1):
+            coarse = z[:, :, :, :12]
+            c_mean = coarse.mean(dim=(1, 2), keepdim=True)
+            c_std = coarse.std(dim=(1, 2), keepdim=True) + 1e-5
+            # Çift odak oluşmasını engelleyen kaba genlik sınırlayıcı
+            z[:, :, :, :12] = torch.clamp(coarse, c_mean - 2.85 * c_std, c_mean + 2.85 * c_std)
+
+        elif step in (2, 3):
+            detail = z[:, :, :, 16:]
+            laplacian = (
+                -4.0 * detail
+                + torch.roll(detail, 1, 1) + torch.roll(detail, -1, 1)
+                + torch.roll(detail, 1, 2) + torch.roll(detail, -1, 2)
+            )
+            # Doku kanallarına organik faz pertürbasyonu (yapay zeka pürüzsüzlüğünü kırar)
+            z[:, :, :, 16:] = detail + 0.012 * torch.tanh(laplacian)
+
+        return z.view(b, n, c)
 
 
 def fast_latents_to_b64(latents, height, width, pipe):

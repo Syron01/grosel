@@ -34,7 +34,7 @@ class GenerateRequest(BaseModel):
     style: str = Field(default="matte_chiaroscuro", max_length=64)
     aspect_ratio: Literal["16:9", "1:1", "9:16", "4:3", "3:4", "2:3", "21:9"] = "16:9"
     quality: Literal["420p", "720p", "1080p", "2K", "4K"] = "1080p"
-    enable_crpf: bool = True
+    enable_crpf: bool = False
     enable_geo: bool = True
     steps: int = Field(default=0, ge=0, le=48)
     refine_steps: int = Field(default=0, ge=0, le=4)

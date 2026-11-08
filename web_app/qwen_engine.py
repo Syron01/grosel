@@ -445,7 +445,7 @@ class QwenStreamEngine:
             seed = torch.randint(0, 2 ** 32 - 1, (1,)).item()
 
         final_prompt = compile_physically_grounded_prompt(
-            prompt, style_key, enable_geo, include_anatomy=False,
+            prompt, style_key, enable_geo,
         )
         base_w, base_h, target_w, target_h, steps = qwen_dimensions(
             quality, aspect_ratio, steps_override,

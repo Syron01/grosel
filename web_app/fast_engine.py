@@ -273,7 +273,7 @@ class FastKleinEngine:
         return emb, False
 
     def _generate_steps(self, prompt_embeds, width, height, steps, seed, step_callback=None,
-                        enable_crpf=True, sigmas=None, output_type="pil", capture=False):
+                        enable_crpf=False, sigmas=None, output_type="pil", capture=False):
         from web_app.engine import crpf_regularize_latents
 
         generator = torch.Generator("cpu").manual_seed(seed)
@@ -418,7 +418,7 @@ class FastKleinEngine:
         return out.images[0], end - t0, marks
 
     def generate(self, prompt, style_key="matte_chiaroscuro", aspect_ratio="16:9", quality="1080p",
-                 seed=None, enable_crpf=True, step_callback=None, status_callback=None,
+                 seed=None, enable_crpf=False, step_callback=None, status_callback=None,
                  enable_geo=True, steps_override=None, refine_steps=0, refine_sigma=0.15,
                  sigmas=None, detail_pass=True, detail_max_mp=None):
         from web_app.engine import (

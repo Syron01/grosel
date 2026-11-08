@@ -61,10 +61,11 @@ def test_sahne_olmayan_sey_uydurulmaz():
     assert "fireplace" in compile("A cozy living room with a fireplace at dusk.", "pure_raw")
 
 
-def test_gercek_insan_sahnesinde_anatomi_gelir():
-    compiled = compile("Portrait of a young woman, hands resting on a table.", "pure_raw")
-    assert "five distinct slender fingers" in compiled
-    assert "natural human leg-to-torso proportions" in compiled
+def test_gercek_insan_sahnesine_anatomi_capasi_eklenmez():
+    # A/B (seed 7102, 1920x1072): çapa ellerin büyümesine ve parmakların
+    # birleşmesine yol açtı; kaldırıldı.
+    prompt = "Portrait of a young woman, hands resting on a table."
+    assert compile(prompt, "pure_raw") == prompt
 
 
 def test_geo_kapatilincak_yalniz_stil_eklenir():

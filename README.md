@@ -4,16 +4,14 @@
 
 <table>
 <tr>
-<td width="50%"><img src="docs/gallery/fireplace-4k.webp" alt="Loş odada şömine başında oturan kadın"><br><sub>4K · 3840×2160 · 20 adım<br>“Loş karanlık odada masaya yaslanmış zarif Asyatik kız”</sub></td>
-<td width="50%"><img src="docs/gallery/pier-1080p.webp" alt="Sisli iskelede balıkçı"><br><sub>1080p · soğuk · 27.3 s · 4.92 GB<br>“A lone fisherman on a wooden pier at foggy dawn”</sub></td>
+<td width="33%"><img src="docs/gallery/scholar-1080p.webp" alt="Mum ışığında el yazması okuyan bilgin"><br><sub>1080p · 4 adım · 13.9 s · 4.92 GB · seed 7102<br>“Karanlık antik kütüphanede mum ışığında el yazması inceleyen yaşlı bilgin”</sub></td>
+<td width="33%"><img src="docs/gallery/pier-1080p.webp" alt="Sisli iskelede balıkçı"><br><sub>1080p · 4 adım · 13.9 s · 4.92 GB · seed 4242<br>“A lone fisherman on a wooden pier at foggy dawn”</sub></td>
+<td width="33%"><img src="docs/gallery/lake-1080p.webp" alt="Sisli göl kıyısında balıkçı"><br><sub>1080p · 4 adım · 13.9 s · 4.92 GB · seed 7104<br>“Sisli bir göl kıyısında ahşap iskelede duran balıkçı”</sub></td>
 </tr>
 <tr>
-<td><img src="docs/gallery/scholar-1080p.webp" alt="Mum ışığında el yazması okuyan bilgin"><br><sub>1080p · sıcak · 11.1 s · 4.84 GB<br>“Karanlık antik kütüphanede mum ışığında el yazması inceleyen yaşlı bilgin”</sub></td>
-<td><img src="docs/gallery/lake-1080p.webp" alt="Sisli göl kıyısında balıkçı"><br><sub>1080p · 12.7 s · 4.92 GB<br>“Sisli bir göl kıyısında ahşap iskelede duran balıkçı”</sub></td>
-</tr>
-<tr>
-<td><img src="docs/gallery/station-720p.webp" alt="Terk edilmiş tren istasyonunda kadın"><br><sub>720p · soğuk · 4.6 s · 4.92 GB<br>“Terk edilmiş tren istasyonunda bankta oturan genç kadın, sis”</sub></td>
-<td><img src="docs/gallery/station-warm-720p.webp" alt="Terk edilmiş tren istasyonunda kadın, farklı seed"><br><sub>720p · sıcak · 3.1 s · 4.18 GB<br>Aynı sahne, farklı seed; sıcak koşu</sub></td>
+<td><img src="docs/gallery/station-1080p.webp" alt="Terk edilmiş tren istasyonunda kadın"><br><sub>1080p · 4 adım · 13.9 s · 4.92 GB · seed 7105<br>“Terk edilmiş tren istasyonunda bankta oturan genç kadın, sis”</sub></td>
+<td><img src="docs/gallery/station-warm-1080p.webp" alt="Terk edilmiş tren istasyonunda kadın, farklı seed"><br><sub>1080p · 4 adım · 12.4 s · 4.84 GB · seed 7106<br>Aynı sahne, farklı seed; sıcak koşu</sub></td>
+<td><sub>Beşi de 1680×944 çizim ve 4 adım. Görseller anatomi çapası kaldırıldıktan sonra üretildi; aynı seed'de eller belirgin düzeldi.</sub></td>
 </tr>
 </table>
 
@@ -70,6 +68,8 @@ grosel serve
 - 30 s hedefi yalnız 720p/16'da; 1080p/40 Qwen yaklaşık 132 s.
 - 5.00 GB tavan kartın sınırında; 6 GB rahat.
 - 2K/4K tiling doğrulanmadı. NF4, FP8'e göre kompozisyonu değiştiriyor.
+- Anatomi çapası A/B ile kaldırıldı (seed 7102): çapa ellerin büyümesine ve parmakların birleşmesine yol açıyordu. 8 adım 4'ten daha iyi; CRPF'in ellerde ölçülebilir etkisi yok, varsayılan kapalı.
+- Metin çapaları kompozisyonu garanti etmez: şömine promptunda aynı seed'de iki ateş ocağı çizildi.
 - KÇM kalite ekseni CLIP prompt uyumu; LPIPS ve insan A/B yapılmadı.
 - Enerji ayrı ölçülmedi; süre düşünce enerji düşer, bu bir türetim.
 

@@ -375,3 +375,10 @@ Marka kararı: **Grosel** (arayüz, sekme başlığı, başlatıcılar). Varsay�
 ! Galeri şu an 8 görsel (3 taze üretim + 5 benchmark). Eski deneme görselleri bu makinede yok.
 ! Fast motor açılışta kartın çoğunu ister; Chrome/Steam/Spotify açıkken warmup OOM.
   Sahne öncesi diğer GPU uygulamalarını kapat — `start_studio.bat` bunu not ediyor.
+
+## 8 Kasım 2026 — anatomi çapası A/B (aynı seed 7102, 1920×1072, 4 adım)
+[x] Çapa açık: eller karede büyük, parmaklar birleşik/uzun. Çapa kapalı: eller doğal, parmaklar ayrık.
+[x] 8 adım 4 adımdan daha iyi eller çizdi (36.6 s vs ~18 s, aynı ızgara); CRPF açık/kapalı ellerde fark ölçülmedi.
+[x] Karar: ANATOMY_ANCHOR kaldırıldı; CRPF varsayılanı kapalı (UI zaten kapalıydı). Script: benchmarks/hand_ablation.py.
+[x] Galeri düzeltilmiş derleyiciyle yeniden üretildi: 5 kare, 1680×944, 4 adım, 4.84–4.92 GB, 12.4–13.9 s.
+[!] Şömine promptunda çift ateş ocağı guard'dan bağımsız çizildi; metin çapası kompozisyonu garanti etmiyor.

@@ -65,7 +65,7 @@
             </div>
             <textarea id="promptInput" placeholder="Describe the scene." maxlength="4000"></textarea>
             <div class="field-actions">
-              <button class="btn-text" id="optimizePromptBtn" title="Compile physics, perspective and anatomy into the prompt">
+              <button class="btn-text" id="optimizePromptBtn" title="Compile physics and perspective into the prompt">
                 <svg class="ic" aria-hidden="true"><use href="#i-tune"/></svg><span>Refine</span>
               </button>
               <button class="btn-text" id="quickSampleBtn">
@@ -705,9 +705,8 @@ C_0(∅) = 0 ,  objective: min_S C_T(S)</pre>
             <li><strong>The drawing grid comes from the ceiling, not the tier name.</strong> Peak scales with the grid (fitted here: 602 MB per megapixel over measured 0.46 / 0.92 / 2.06 MP draws), so 1080p is a 1680×944 draw finished by bicubic to 1920×1080 — warm 4.84 GB, cold 4.92 GB, inside the 5.0 GB promise. Uncapped it drew 1920×1072 and measured 5.12 GB; measured structural detail was the same either way (3754 vs 3732).</li>
             <li><strong>On an 8 GB card 2K and 4K are resamples, not more compute.</strong> The same fitted cap gives all three tiers the same 1680×944 grid; the panel prints native → target so the difference is visible instead of advertised.</li>
             <li><strong>One second only at 420p warm.</strong> 640×368 skips decode offload: 3 steps + cache measured ≈1.1 s. Not true at 1080p.</li>
-            <li><strong>Hand quality is the model's own limit.</strong> The anatomy anchor now attaches only to prompts that contain people. The larger base grid is more consistent, but 6 steps do not fix hands.</li>
+            <li><strong>Hands: the anatomy anchor was removed.</strong> Same seed, 1920×1072: the anchor drew larger hands with fused fingers; without it the hands read naturally. 8 steps drew better hands than 4 (36.6 s vs 18 s at this grid); CRPF made no measurable difference on hands and stays off by default.</li>
             <li><strong>1.1 GB only in classic mode.</strong> BF16 + CPU flow produces 720p in 10.4 s; the speed/memory trade is real.</li>
-            <li><strong>More steps are not more quality.</strong> At the same seed, 6 steps drew worse hands than 4; the model is distilled for 4. CRPF is experimental and off by default.</li>
             <li><strong>BF16 full residency does not fit 8 GB.</strong> Weights alone are <span class="mono" id="limitBf16">—</span>, so conversion is mandatory, not optional.</li>
           </ul>
         </section>

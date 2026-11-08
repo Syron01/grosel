@@ -35,11 +35,6 @@ def save_sidecar(filename: str, data: dict) -> None:
     except OSError as e:
         print(f"[meta] Uyarı: {e}")
 
-ANATOMY_ANCHOR = (
-    "anatomically flawless hands with exactly five distinct slender fingers, authentic non-plastic skin texture with visible organic pores, "
-    "coherent natural facial symmetry, zero distorted digits, zero fused fingers, zero extra limbs, zero floating artifacts"
-)
-
 # Alıntıdaki kelime yoksa (sadece "tabela" gibi bir istek geçiyorsa) kullanılan genel çapa.
 TEXT_ANCHOR = (
     'render the quoted word exactly as written, in clean continuous letterforms with correct spelling, '
@@ -69,23 +64,7 @@ def spelling_anchor(quoted: str) -> str:
         return f"(letters {spelled} in that order, one unbroken word, no hyphen, no space)"
     return f"(letters {spelled} in that order, no hyphen, no extra punctuation)"
 
-# Anatomi çapası yalnızca sahnede insan/vücut geçiyorsa eklenir; manzaraya eklenince
-# model promptta olmayan dev eller üretiyordu.
-_ANATOMY_RE = re.compile(
-    r"(?<![\wçğıöşü\-])("
-    r"el|eli|elin|elinde|eller|elleri|elle|elde|"
-    r"parmak\w*|yüz|portre\w*|"
-    r"hand|hands|finger\w*|portrait\w*|"
-    r"man|woman|women|person|people|human|figure|figures|body|face|"
-    r"insan\w*|adam\w*|kadın\w*|kız\w*|erkek\w*|çocuk\w*|yaşlı\w*|genç\w*|"
-    r"usta\w*|saatçi\w*|anatom\w*|vücut\w*|figür\w*|"
-    r"watchmaker\w*|craftsman\w*|artisan\w*"
-    r")(?![\wçğıöşü\-])",
-    re.IGNORECASE | re.UNICODE,
-)
-
-# "quiet street with no people" gibi olumsuz özneler çapa tetiklemesin: çapa
-# sahnede o şeyin varlığından çıkar, yokluğundan değil.
+# "quiet street with no people" gibi olumsuz özneler orta tespitini tetiklemesin.
 _PERSONS = (r"people|persons?|humans?|figures?|crowds?|pedestrians?|passersby"
             r"|insan(?:lar)?|kişi(?:ler)?|adam(?:lar)?|kadın(?:lar)?|çocuk(?:lar)?")
 _NEGATED_SUBJECT_RE = re.compile(
@@ -193,15 +172,13 @@ def detect_medium(prompt: str) -> str | None:
 
 
 def compile_physically_grounded_prompt(user_prompt: str, style_key: str = "matte_chiaroscuro",
-                                       enable_geo: bool = True, include_anatomy: bool = True) -> str:
+                                       enable_geo: bool = True) -> str:
     """
     Sahne çapalarını kullanıcı isteğiyle çelişmeden ekler.
     enable_geo=False iken yalnızca stil ön/son ekleri uygulanır.
-    include_anatomy=False, anatomisi zaten güçlü modellerde çapayı atlar.
     """
     scene = _NEGATED_SUBJECT_RE.sub(" ", user_prompt)
     wants_text = bool(_QUOTED_WORD_RE.search(user_prompt) or _TEXT_REQUEST_RE.search(user_prompt))
-    needs_anatomy = include_anatomy and bool(_ANATOMY_RE.search(scene))
 
     guards = []
     if enable_geo:
@@ -227,9 +204,6 @@ def compile_physically_grounded_prompt(user_prompt: str, style_key: str = "matte
         if match:
             inline_anchor = spelling_anchor(match.group(0))
         clauses.append(TEXT_TAIL if inline_anchor else TEXT_ANCHOR)
-    if needs_anatomy:
-        clauses.append("natural human leg-to-torso proportions")
-        clauses.append(ANATOMY_ANCHOR)
 
     preset = STYLE_PRESETS.get(style_key, STYLE_PRESETS["matte_chiaroscuro"])
     # Kullanıcı promptu kendi ortamını adlandırdıysa ("editorial photograph") çelişen stil
@@ -378,7 +352,7 @@ class GroselEngine:
 
     def generate(self, prompt: str, style_key: str = "matte_chiaroscuro", 
                  aspect_ratio: str = "16:9", quality: str = "1080p", 
-                 seed: int | None = None, enable_crpf: bool = True, step_callback = None,
+                 seed: int | None = None, enable_crpf: bool = False, step_callback = None,
                  enable_geo: bool = True, steps_override=None):
         if seed is None or seed < 0:
             seed = torch.randint(0, 2**32 - 1, (1,)).item()

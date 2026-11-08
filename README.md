@@ -48,7 +48,7 @@ start_resident_qwen.bat
 | Qwen yerleşik | 720p / 16, sıcak | 29.3 s | 3.91 GB |
 | Qwen yerleşik | 1080p 2:3 / 40 | 132.3 s | 4.06 GB |
 
-Donanım: RTX 5060 Laptop, 8 GB. Diğer sayılar `PlanTreni.md` içinde.
+Donanım: RTX 5060 Laptop, 8 GB. Diğer sayılar `PlanTreni.md` içinde. Galeri 8 Kasım'da yeniden üretildi; süreler arka plan GPU yüküyle ±1 s değişiyor.
 
 ## Komut satırı
 
